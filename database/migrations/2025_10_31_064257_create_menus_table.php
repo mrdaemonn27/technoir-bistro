@@ -15,11 +15,15 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->text('description')->nullable();
-            $table->decimal('price', 10, 2); // Ganti ke decimal untuk uang
-
+            $table->decimal('price', 10, 2);
+            
+            // --- PERBAIKAN: Menambahkan Kolom Image Di Sini ---
+            $table->string('image')->nullable(); 
+            
+            // Foreign Key
             $table->foreignId('category_id')
-                  ->constrained('categories') // terhubung ke tabel 'categories'
-                  ->onDelete('cascade'); // jika kategori dihapus, menu ikut terhapus
+                  ->constrained('categories')
+                  ->onDelete('cascade');
             
             $table->boolean('availability')->default(true);
             $table->timestamps();

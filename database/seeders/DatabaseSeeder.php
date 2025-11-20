@@ -3,23 +3,30 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
      * Seed the application's database.
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // 1. Panggil seeder Menu dan Meja (PENTING: Agar menu & meja muncul)
+        $this->call([
+            MenuSeeder::class,
+            TableSeeder::class,
+        ]);
 
+        // 2. Buat User Test (Admin)
         User::factory()->create([
-            'name' => 'Test User',
+            // PERBAIKAN UTAMA: Ganti 'name' menjadi 'username'
+            'username' => 'Test User', 
+            
             'email' => 'test@example.com',
+            'is_admin' => true,
+            'is_verified' => true,
         ]);
     }
 }

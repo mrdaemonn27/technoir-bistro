@@ -12,13 +12,14 @@ class Menu extends Model
     use HasFactory;
 
     /**
-     * 
+     * Properti yang bisa diisi secara massal.
      */
     protected $fillable = [
         'name',
-        'description', 
+        'description',
         'price',
-        'category_id', 
+        'image',       // <--- TAMBAHKAN INI AGAR GAMBAR BISA DISIMPAN
+        'category_id',
         'availability'
     ];
 

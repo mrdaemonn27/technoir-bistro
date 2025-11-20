@@ -18,11 +18,11 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'username',
+        'username',    // Pastikan ini username
         'email',
         'password',
-        'is_verified', // Tambahkan
-        'is_admin',    // Tambahkan
+        'is_verified', // Tambahan kolom baru
+        'is_admin',    // Tambahan kolom baru
     ];
 
     /**
@@ -45,8 +45,18 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            // Tambahan: Casting agar otomatis jadi boolean (true/false)
+            'is_verified' => 'boolean',
+            'is_admin' => 'boolean',
         ];
     }
+
+    /* CATATAN: Relasi di bawah ini SAYA KOMENTAR DULU.
+       Nyalakan kembali nanti setelah Anda membuat Model Reservation dan Favorite.
+       Jika dinyalakan sekarang, akan error "Class not found".
+    */
+
+    /*
     // Relasi: 1 User punya banyak Reservations
     public function reservations()
     {
@@ -58,4 +68,5 @@ class User extends Authenticatable
     {
         return $this->hasMany(Favorite::class);
     }
+    */
 }
