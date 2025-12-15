@@ -2,11 +2,23 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Payment extends Model
 {
-    // Relasi: 1 Payment milik 1 Reservasi
+    use HasFactory;
+
+    protected $fillable = [
+        'reservation_id',
+        'amount',
+        'payment_method',
+        'payment_status',
+        'proof_of_payment',
+        'payment_date',
+    ];
+
+    // Relasi ke Reservation
     public function reservation()
     {
         return $this->belongsTo(Reservation::class);

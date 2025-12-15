@@ -20,7 +20,7 @@
                     </x-nav-link>
 
                     {{-- 2. ABOUT (Link ke bagian About di Homepage) --}}
-                    <x-nav-link href="/#about" :active="false">
+                    <x-nav-link :href="route('about')" :active="request()->routeIs('about')">
                         ABOUT
                     </x-nav-link>
                     
@@ -31,13 +31,16 @@
 
                     {{-- 4. RESERVATIONS (Riwayat / Daftar) --}}
                     @auth
-                        <x-nav-link :href="route('reservations.index')" :active="request()->routeIs('reservations.index')">
-                            RESERVATIONS
-                        </x-nav-link>
+                        {{-- HANYA TAMPIL JIKA BUKAN ADMIN --}}
+                        @if(!Auth::user()->is_admin)
+                            <x-nav-link :href="route('reservations.index')" :active="request()->routeIs('reservations.index')">
+                                RESERVATIONS
+                            </x-nav-link>
+                        @endif
                     @endauth
 
                     {{-- 5. CONTACT (Link ke bagian Footer/Contact) --}}
-                    <x-nav-link href="/#contact" :active="false">
+                    <x-nav-link :href="route('contact')" :active="request()->routeIs('contact')">
                         CONTACT
                     </x-nav-link>
                 </div>
@@ -70,6 +73,14 @@
                                 {{ __('Profile') }}
                             </x-dropdown-link>
 
+                            <!-- Dashboard User (Hanya muncul jika BUKAN admin) -->
+                            @if(!Auth::user()->is_admin)
+                                <x-dropdown-link :href="route('dashboard')">
+                                    {{ __('Dashboard') }}
+                                </x-dropdown-link>
+                            @endif
+
+                            <!-- Dashboard Admin (Hanya muncul jika Admin) -->
                             @if(Auth::user()->is_admin)
                                 <x-dropdown-link :href="route('admin.index')">
                                     {{ __('Admin Dashboard') }}
@@ -114,18 +125,23 @@
             <x-responsive-nav-link :href="route('home')" :active="request()->routeIs('home')">
                 HOME
             </x-responsive-nav-link>
-            <x-responsive-nav-link href="/#about">
+            <x-responsive-nav-link :href="route('about')" :active="request()->routeIs('about')">
                 ABOUT
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('menu.index')" :active="request()->routeIs('menu.index')">
                 MENU
             </x-responsive-nav-link>
+            
             @auth
-                <x-responsive-nav-link :href="route('reservations.index')" :active="request()->routeIs('reservations.index')">
-                    RESERVATIONS
-                </x-responsive-nav-link>
+                {{-- HANYA TAMPIL JIKA BUKAN ADMIN --}}
+                @if(!Auth::user()->is_admin)
+                    <x-responsive-nav-link :href="route('reservations.index')" :active="request()->routeIs('reservations.index')">
+                        RESERVATIONS
+                    </x-responsive-nav-link>
+                @endif
             @endauth
-            <x-responsive-nav-link href="/#contact">
+
+            <x-responsive-nav-link :href="route('contact')" :active="request()->routeIs('contact')">
                 CONTACT
             </x-responsive-nav-link>
             
@@ -149,6 +165,13 @@
                     <x-responsive-nav-link :href="route('profile.edit')">
                         {{ __('Profile') }}
                     </x-responsive-nav-link>
+
+                    @if(!Auth::user()->is_admin)
+                        <x-responsive-nav-link :href="route('dashboard')">
+                            {{ __('Dashboard') }}
+                        </x-responsive-nav-link>
+                    @endif
+
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <x-responsive-nav-link :href="route('logout')"
