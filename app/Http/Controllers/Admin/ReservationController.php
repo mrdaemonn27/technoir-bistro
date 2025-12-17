@@ -17,7 +17,7 @@ class ReservationController extends Controller
     {
         // Ambil data reservasi terbaru beserta relasi user dan table
         // Menggunakan pagination agar halaman tidak berat jika data banyak
-        $reservations = Reservation::with(['user', 'table'])->latest()->paginate(10);
+        $reservations = Reservation::with(['user', 'table', 'menus'])->latest()->paginate(10);
 
         return view('admin.reservations.index', compact('reservations'));
     }

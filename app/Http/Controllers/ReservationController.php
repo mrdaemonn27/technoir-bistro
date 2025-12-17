@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Reservation;
 use App\Models\Table;
 use App\Models\Menu;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -43,7 +44,17 @@ class ReservationController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'reservation_date' => 'required|date|after:now',
+            'reservation_date' => [
+                'required',
+                'date',
+                'after:now',
+                function ($attribute, $value, $fail) {
+                    $date = Carbon::parse($value);
+                    if ($date->minute !== 0) {
+                        $fail('Waktu reservasi harus jam genap (contoh: 12:00, 13:00, 14:00).');
+                    }
+                },
+            ],
             'table_id' => 'required|exists:tables,id',
             'guest_count' => 'required|integer|min:1',
             'notes' => 'nullable|string',
@@ -111,7 +122,17 @@ class ReservationController extends Controller
 
         // 2. Validasi
         $request->validate([
-            'reservation_date' => 'required|date|after:now',
+            'reservation_date' => [
+                'required',
+                'date',
+                'after:now',
+                function ($attribute, $value, $fail) {
+                    $date = Carbon::parse($value);
+                    if ($date->minute !== 0) {
+                        $fail('Waktu reservasi harus jam genap (contoh: 12:00, 13:00, 14:00).');
+                    }
+                },
+            ],
             'table_id' => 'required|exists:tables,id',
             'guest_count' => 'required|integer|min:1',
             'notes' => 'nullable|string',

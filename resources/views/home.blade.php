@@ -223,7 +223,13 @@
 
                     <div class="text-left">
                         <label class="block text-xs text-gray-300 mb-2 uppercase tracking-widest">Waktu & Tanggal</label>
-                        <input type="datetime-local" name="reservation_date" class="w-full bg-white text-gray-900 border-none rounded-md focus:ring-[#E5A024]" required>
+                        <input type="datetime-local" 
+                               name="reservation_date" 
+                               id="home_reservation_date"
+                               min="{{ \Carbon\Carbon::now()->format('Y-m-d\TH:i') }}"
+                               step="3600"
+                               class="w-full bg-white text-gray-900 border-none rounded-md focus:ring-[#E5A024]" 
+                               required>
                     </div>
 
                     {{-- Tombol Action: Arahkan ke halaman form reservasi untuk detail lebih lanjut --}}
@@ -283,4 +289,58 @@
             </div>
         </div>
     </footer>
+
+    <script>
+        // Membatasi input datetime-local hanya jam genap (menit harus 00) untuk form di homepage
+        document.addEventListener('DOMContentLoaded', function() {
+            const dateInput = document.getElementById('home_reservation_date');
+            
+            if (dateInput) {
+                // Set step ke 3600 detik (1 jam) untuk memudahkan pemilihan jam genap
+                dateInput.step = '3600';
+                
+                // Event listener untuk memastikan menit selalu 00
+                dateInput.addEventListener('change', function() {
+                    const value = this.value;
+                    if (value) {
+                        // Parse datetime dan set menit ke 00
+                        const date = new Date(value);
+                        date.setMinutes(0);
+                        date.setSeconds(0);
+                        
+                        // Format kembali ke format datetime-local (YYYY-MM-DDTHH:mm)
+                        const year = date.getFullYear();
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const hours = String(date.getHours()).padStart(2, '0');
+                        const formatted = `${year}-${month}-${day}T${hours}:00`;
+                        
+                        // Set nilai baru jika berbeda
+                        if (this.value !== formatted) {
+                            this.value = formatted;
+                        }
+                    }
+                });
+                
+                // Validasi saat input
+                dateInput.addEventListener('input', function() {
+                    const value = this.value;
+                    if (value) {
+                        const date = new Date(value);
+                        const minutes = date.getMinutes();
+                        
+                        // Jika menit bukan 00, set ke 00
+                        if (minutes !== 0) {
+                            date.setMinutes(0);
+                            const year = date.getFullYear();
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const hours = String(date.getHours()).padStart(2, '0');
+                            this.value = `${year}-${month}-${day}T${hours}:00`;
+                        }
+                    }
+                });
+            }
+        });
+    </script>
 </x-app-layout>

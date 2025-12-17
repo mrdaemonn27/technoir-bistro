@@ -21,9 +21,15 @@
                             <div class="mb-4">
                                 <label class="block text-gray-600 text-sm font-bold mb-2">Waktu Kedatangan</label>
                                 {{-- Format tanggal untuk input datetime-local: Y-m-d\TH:i --}}
-                                <input type="datetime-local" name="reservation_date" 
-                                       value="{{ \Carbon\Carbon::parse($reservation->reservation_date)->format('Y-m-d\TH:i') }}"
-                                       class="w-full border-gray-300 rounded-md focus:ring-[#E5A024] focus:border-[#E5A024]" required>
+                                <input type="datetime-local" 
+                                       name="reservation_date" 
+                                       id="reservation_date"
+                                       value="{{ \Carbon\Carbon::parse($reservation->reservation_date)->startOfHour()->format('Y-m-d\TH:i') }}"
+                                       min="{{ \Carbon\Carbon::now()->addHour()->startOfHour()->format('Y-m-d\TH:i') }}"
+                                       step="3600"
+                                       class="w-full border-gray-300 rounded-md focus:ring-[#E5A024] focus:border-[#E5A024]" 
+                                       required>
+                                <p class="text-xs text-gray-500 mt-1">Pilih jam genap (contoh: 12:00, 13:00, 14:00)</p>
                             </div>
 
                             <div class="mb-4">
@@ -109,4 +115,80 @@
             </form>
         </div>
     </div>
+
+    <script>
+        // Membatasi input datetime-local hanya jam genap (menit harus 00)
+        document.addEventListener('DOMContentLoaded', function() {
+            const dateInput = document.getElementById('reservation_date');
+            
+            if (dateInput) {
+                // Fungsi untuk memformat datetime ke jam genap (menit 00)
+                function formatToEvenHour(value) {
+                    if (!value) return '';
+                    
+                    const date = new Date(value);
+                    // Set menit dan detik ke 0
+                    date.setMinutes(0);
+                    date.setSeconds(0);
+                    date.setMilliseconds(0);
+                    
+                    // Format kembali ke format datetime-local (YYYY-MM-DDTHH:mm)
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    return `${year}-${month}-${day}T${hours}:00`;
+                }
+                
+                // Event listener untuk memastikan menit selalu 00 saat change
+                dateInput.addEventListener('change', function() {
+                    const value = this.value;
+                    if (value) {
+                        const formatted = formatToEvenHour(value);
+                        if (this.value !== formatted) {
+                            this.value = formatted;
+                        }
+                    }
+                });
+                
+                // Validasi saat input (real-time)
+                dateInput.addEventListener('input', function() {
+                    const value = this.value;
+                    if (value) {
+                        const date = new Date(value);
+                        const minutes = date.getMinutes();
+                        
+                        // Jika menit bukan 00, set ke 00
+                        if (minutes !== 0) {
+                            const formatted = formatToEvenHour(value);
+                            this.value = formatted;
+                        }
+                    }
+                });
+                
+                // Validasi sebelum submit form
+                const form = dateInput.closest('form');
+                if (form) {
+                    form.addEventListener('submit', function(e) {
+                        const value = dateInput.value;
+                        if (value) {
+                            const formatted = formatToEvenHour(value);
+                            if (dateInput.value !== formatted) {
+                                dateInput.value = formatted;
+                            }
+                            
+                            // Double check: pastikan menit adalah 00
+                            const date = new Date(dateInput.value);
+                            if (date.getMinutes() !== 0) {
+                                e.preventDefault();
+                                alert('Waktu reservasi harus jam genap (contoh: 12:00, 13:00, 14:00).');
+                                dateInput.focus();
+                                return false;
+                            }
+                        }
+                    });
+                }
+            }
+        });
+    </script>
 </x-app-layout>

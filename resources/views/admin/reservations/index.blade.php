@@ -44,7 +44,7 @@
                                             #{{ $reservation->id }}
                                         </td>
                                         <td class="py-4 px-6">
-                                            <div class="font-semibold">{{ $reservation->user->name ?? 'Guest' }}</div>
+                                            <div class="font-semibold">{{ $reservation->user->username ?? 'Guest' }}</div>
                                             <div class="text-xs text-gray-400">{{ $reservation->user->email ?? '-' }}</div>
                                         </td>
                                         <td class="py-4 px-6">
@@ -53,7 +53,7 @@
                                         </td>
                                         <td class="py-4 px-6">
                                             <div>{{ $reservation->table->name ?? 'Meja Dihapus' }} <span class="text-xs">({{ $reservation->table->location ?? '-' }})</span></div>
-                                            <div class="text-xs text-gray-500">{{ $reservation->guest_number }} Orang</div>
+                                            <div class="text-xs text-gray-500">{{ $reservation->guest_count }} Orang</div>
                                         </td>
                                         <td class="py-4 px-6">
                                             <form action="{{ route('admin.reservations.update', $reservation->id) }}" method="POST">

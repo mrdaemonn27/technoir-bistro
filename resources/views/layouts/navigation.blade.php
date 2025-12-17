@@ -8,7 +8,7 @@
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
                     <a href="{{ route('home') }}">
-                        <x-application-logo class="block h-10 w-auto fill-current text-indigo-600 dark:text-indigo-400" />
+                        <x-application-logo class="block h-20 w-auto fill-current" />
                     </a>
                 </div>
 
@@ -49,10 +49,22 @@
             <!-- Kanan: CTA & User Dropdown -->
             <div class="hidden sm:flex sm:items-center sm:ms-6 gap-4">
                 
-                {{-- TOMBOL AKSI (CTA): BOOK A TABLE --}}
-                <a href="{{ route('reservations.create') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-full text-xs tracking-widest uppercase transition shadow-lg shadow-indigo-500/30 transform hover:scale-105">
-                    Book a Table
-                </a>
+                {{-- TOMBOL AKSI (CTA): BOOK A TABLE / DASHBOARD ADMIN --}}
+                @auth
+                    @if(Auth::user()->is_admin)
+                        <a href="{{ route('admin.index') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-full text-xs tracking-widest uppercase transition shadow-lg shadow-indigo-500/30 transform hover:scale-105">
+                            Dashboard Admin
+                        </a>
+                    @else
+                        <a href="{{ route('reservations.create') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-full text-xs tracking-widest uppercase transition shadow-lg shadow-indigo-500/30 transform hover:scale-105">
+                            Book a Table
+                        </a>
+                    @endif
+                @else
+                    <a href="{{ route('reservations.create') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-full text-xs tracking-widest uppercase transition shadow-lg shadow-indigo-500/30 transform hover:scale-105">
+                        Book a Table
+                    </a>
+                @endauth
 
                 {{-- User Dropdown / Login Links --}}
                 @auth
@@ -147,9 +159,21 @@
             
             {{-- CTA Mobile --}}
             <div class="px-4 mt-4">
-                <a href="{{ route('reservations.create') }}" class="block w-full text-center bg-indigo-600 text-white font-bold py-3 rounded-lg shadow-lg">
-                    BOOK A TABLE
-                </a>
+                @auth
+                    @if(Auth::user()->is_admin)
+                        <a href="{{ route('admin.index') }}" class="block w-full text-center bg-indigo-600 text-white font-bold py-3 rounded-lg shadow-lg">
+                            DASHBOARD ADMIN
+                        </a>
+                    @else
+                        <a href="{{ route('reservations.create') }}" class="block w-full text-center bg-indigo-600 text-white font-bold py-3 rounded-lg shadow-lg">
+                            BOOK A TABLE
+                        </a>
+                    @endif
+                @else
+                    <a href="{{ route('reservations.create') }}" class="block w-full text-center bg-indigo-600 text-white font-bold py-3 rounded-lg shadow-lg">
+                        BOOK A TABLE
+                    </a>
+                @endauth
             </div>
         </div>
 

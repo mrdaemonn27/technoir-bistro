@@ -46,12 +46,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    // Rute pembayaran Xendit
+    Route::get('/payments/success', [PaymentController::class, 'success'])->name('payments.success');
+    Route::get('/payments/failed', [PaymentController::class, 'failed'])->name('payments.failed');
+
     // Fitur Pelanggan Lainnya
     Route::resource('reservations', ReservationController::class)->except(['show']);
-    
-    Route::resource('payments', PaymentController::class);
+    Route::resource('payments', PaymentController::class)->only(['create', 'store']);
     Route::resource('favorites', FavoriteController::class)->only(['index', 'store', 'destroy']);
 });
+
+// Webhook Xendit (tidak perlu login)
+Route::post('/webhooks/xendit', [PaymentController::class, 'webhook'])->name('payments.webhook');
 
 
 // == RUTE ADMIN (Harus login & 'is_admin' == true) ==
