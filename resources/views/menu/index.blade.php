@@ -3,13 +3,34 @@
     <div class="py-12 bg-[#FFF8F5] min-h-screen">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             
+            {{-- Flash Message --}}
+            @if (session('success'))
+                <div class="mb-6 max-w-xl mx-auto">
+                    <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm shadow-sm">
+                        {{ session('success') }}
+                    </div>
+                </div>
+            @endif
+            
             {{-- Header Title --}}
-            <div class="text-center mb-12">
-                <span class="text-[#E5A024] font-serif italic text-xl">Our Selection</span>
-                <h2 class="text-4xl font-bold text-[#2D2D2D] mt-2">Daftar Menu Technoir</h2>
-                <p class="text-gray-600 mt-4 max-w-2xl mx-auto">
-                    Nikmati sajian masa depan dengan pilihan menu terbaik yang memadukan cita rasa klasik dan sentuhan cybernetic.
-                </p>
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-12">
+                <div class="text-center md:text-left">
+                    <span class="text-[#E5A024] font-serif italic text-xl">Our Selection</span>
+                    <h2 class="text-4xl font-bold text-[#2D2D2D] mt-2">Daftar Menu Technoir</h2>
+                    <p class="text-gray-600 mt-4 max-w-2xl">
+                        Nikmati sajian masa depan dengan pilihan menu terbaik yang memadukan cita rasa klasik dan sentuhan cybernetic.
+                    </p>
+                </div>
+
+                @auth
+                    @if(!Auth::user()->is_admin)
+                        <div class="mt-6 md:mt-0">
+                            <a href="{{ route('favorites.index') }}" class="inline-flex items-center px-4 py-2 bg-[#2D2D2D] hover:bg-[#E5A024] text-white text-sm font-semibold rounded-full shadow transition">
+                                Lihat Menu Favorit
+                            </a>
+                        </div>
+                    @endif
+                @endauth
             </div>
 
             {{-- Grid Layout --}}
@@ -45,6 +66,18 @@
                                 <h4 class="font-bold text-xl text-[#2D2D2D] group-hover:text-[#E5A024] transition-colors duration-300 line-clamp-1" title="{{ $menu->name }}">
                                     {{ $menu->name }}
                                 </h4>
+
+                                @auth
+                                    @if(!Auth::user()->is_admin)
+                                        <form action="{{ route('favorites.store') }}" method="POST">
+                                            @csrf
+                                            <input type="hidden" name="menu_id" value="{{ $menu->id }}">
+                                            <button type="submit" class="text-gray-300 hover:text-red-500 transition" title="Tambah / Hapus dari Favorit">
+                                                &#9829;
+                                            </button>
+                                        </form>
+                                    @endif
+                                @endauth
                             </div>
                             
                             <p class="text-sm text-gray-600 mb-6 line-clamp-3 min-h-[60px] leading-relaxed">

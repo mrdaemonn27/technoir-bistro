@@ -63,14 +63,7 @@
                     Sign In
                 </button>
 
-                <!-- Forgot Password -->
-                <div class="flex items-center justify-between mt-4">
-                    @if (Route::has('password.request'))
-                        <a class="text-sm text-[#2D2D2D] underline hover:text-[#E5A024]" href="{{ route('password.request') }}">
-                            {{ __('Forgot your password?') }}
-                        </a>
-                    @endif
-                </div>
+
 
                 <!-- Signup -->
                 <p class="text-center text-sm text-[#2D2D2D] mt-6">

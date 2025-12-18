@@ -39,7 +39,7 @@
                             </thead>
                             <tbody>
                                 @forelse ($reservations as $reservation)
-                                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 align-top">
                                         <td class="py-4 px-6 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                                             #{{ $reservation->id }}
                                         </td>
@@ -54,6 +54,24 @@
                                         <td class="py-4 px-6">
                                             <div>{{ $reservation->table->name ?? 'Meja Dihapus' }} <span class="text-xs">({{ $reservation->table->location ?? '-' }})</span></div>
                                             <div class="text-xs text-gray-500">{{ $reservation->guest_count }} Orang</div>
+
+                                            @if($reservation->menus->count() > 0)
+                                                <div class="mt-3 text-xs">
+                                                    <div class="font-semibold mb-1">Pesanan Menu:</div>
+                                                    <ul class="space-y-1">
+                                                        @foreach($reservation->menus as $menu)
+                                                            <li class="flex justify-between">
+                                                                <span>{{ $menu->name }} <span class="text-gray-400">(x{{ $menu->pivot->quantity }})</span></span>
+                                                                <span class="font-semibold">Rp {{ number_format($menu->price * $menu->pivot->quantity, 0, ',', '.') }}</span>
+                                                            </li>
+                                                        @endforeach
+                                                    </ul>
+                                                </div>
+                                            @else
+                                                <div class="mt-2 text-xs text-gray-400 italic">
+                                                    Tidak ada pesanan menu.
+                                                </div>
+                                            @endif
                                         </td>
                                         <td class="py-4 px-6">
                                             <form action="{{ route('admin.reservations.update', $reservation->id) }}" method="POST">

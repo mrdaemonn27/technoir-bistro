@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Reservation;
 use App\Models\Table;
 use App\Models\Menu;
+use App\Models\Favorite;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -34,8 +35,17 @@ class ReservationController extends Controller
         $tables = Table::where('status', 'available')->get();
         // (FR-06) Ambil semua menu yang tersedia agar bisa dipilih di form (Pre-order)
         $menus = Menu::where('availability', true)->get();
-        
-        return view('reservations.create', compact('tables', 'menus'));
+
+        // Ambil menu favorit user (jika login)
+        $favoriteMenuIds = Favorite::where('user_id', Auth::id())
+            ->pluck('menu_id')
+            ->toArray();
+
+        return view('reservations.create', [
+            'tables' => $tables,
+            'menus' => $menus,
+            'favoriteMenuIds' => $favoriteMenuIds,
+        ]);
     }
 
     /**

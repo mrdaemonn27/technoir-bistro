@@ -29,7 +29,16 @@
                         MENU
                     </x-nav-link>
 
-                    {{-- 4. RESERVATIONS (Riwayat / Daftar) --}}
+                    {{-- 4. FAVORITES (Menu Favorit User) --}}
+                    @auth
+                        @if(!Auth::user()->is_admin)
+                            <x-nav-link :href="route('favorites.index')" :active="request()->routeIs('favorites.index')">
+                                FAVORITES
+                            </x-nav-link>
+                        @endif
+                    @endauth
+
+                    {{-- 5. RESERVATIONS (Riwayat / Daftar) --}}
                     @auth
                         {{-- HANYA TAMPIL JIKA BUKAN ADMIN --}}
                         @if(!Auth::user()->is_admin)
@@ -39,7 +48,7 @@
                         @endif
                     @endauth
 
-                    {{-- 5. CONTACT (Link ke bagian Footer/Contact) --}}
+                    {{-- 6. CONTACT (Link ke bagian Footer/Contact) --}}
                     <x-nav-link :href="route('contact')" :active="request()->routeIs('contact')">
                         CONTACT
                     </x-nav-link>
