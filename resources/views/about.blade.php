@@ -31,7 +31,7 @@
                         Technoir Bistro didirikan pada tahun 2025 dengan visi sederhana: menciptakan tempat di mana teknologi dan kuliner dapat berpadu secara harmonis. Kami percaya bahwa makanan bukan hanya sekadar kebutuhan, tetapi sebuah seni yang terus berkembang.
                     </p>
                     <p class="text-gray-600 mb-6 leading-relaxed">
-                        Berlokasi di jantung kota Bandung, kami mengusung konsep *Cyber-Gastronomy*, di mana setiap hidangan disiapkan dengan presisi tinggi namun tetap mempertahankan kehangatan rasa rumahan.
+                        Berlokasi di jantung kota Bandung, kami mengusung konsep Cyber-Gastronomy, di mana setiap hidangan disiapkan dengan presisi tinggi namun tetap mempertahankan kehangatan rasa rumahan.
                     </p>
                     
                     <div class="grid grid-cols-2 gap-6 mt-8">
@@ -94,21 +94,21 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div class="group">
                     <div class="relative overflow-hidden rounded-lg mb-4">
-                        <img src="https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&w=400&q=80" alt="Chef 1" class="w-full h-80 object-cover grayscale group-hover:grayscale-0 transition duration-500 transform group-hover:scale-105">
+                        <img src="https://images.unsplash.com/photo-1577219491135-ce391730fb2c?auto=format&fit=crop&w=400&q=80" alt="Chef 1" class="w-full h-80 object-cover grayscale group-hover:grayscale-0 transition duration-500 transform group-hover:scale-105">
                     </div>
                     <h4 class="text-xl font-bold">Chef Junaedi</h4>
                     <p class="text-[#E5A024] text-sm">Executive Chef</p>
                 </div>
                 <div class="group">
                     <div class="relative overflow-hidden rounded-lg mb-4">
-                        <img src="https://images.unsplash.com/photo-1577219491135-ce391730fb2c?auto=format&fit=crop&w=400&q=80" alt="Chef 2" class="w-full h-80 object-cover grayscale group-hover:grayscale-0 transition duration-500 transform group-hover:scale-105">
+                        <img src="https://plus.unsplash.com/premium_photo-1664478052858-d137d26e2cfd?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Chef 2" class="w-full h-80 object-cover grayscale group-hover:grayscale-0 transition duration-500 transform group-hover:scale-105">
                     </div>
                     <h4 class="text-xl font-bold">Chef Sarah</h4>
                     <p class="text-[#E5A024] text-sm">Pastry Specialist</p>
                 </div>
                 <div class="group">
                     <div class="relative overflow-hidden rounded-lg mb-4">
-                        <img src="https://images.unsplash.com/photo-1566554273541-37a9ca77b91f?auto=format&fit=crop&w=400&q=80" alt="Chef 3" class="w-full h-80 object-cover grayscale group-hover:grayscale-0 transition duration-500 transform group-hover:scale-105">
+                        <img src="https://images.unsplash.com/photo-1723083466985-d462dc26a9a3?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Chef 3" class="w-full h-80 object-cover grayscale group-hover:grayscale-0 transition duration-500 transform group-hover:scale-105">
                     </div>
                     <h4 class="text-xl font-bold">Chef Reza</h4>
                     <p class="text-[#E5A024] text-sm">Sous Chef</p>

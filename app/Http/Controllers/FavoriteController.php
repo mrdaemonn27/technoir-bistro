@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 class FavoriteController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Menampilkan daftar menu favorit.
      */
     public function index()
     {
@@ -23,7 +23,7 @@ class FavoriteController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Menambahkan menu ke favorit.
      */
     public function create()
     {
@@ -31,7 +31,7 @@ class FavoriteController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Menyimpan menu ke favorit.
      */
     public function store(Request $request)
     {
@@ -60,7 +60,7 @@ class FavoriteController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Menampilkan detail menu favorit.
      */
     public function show(string $id)
     {
@@ -68,7 +68,7 @@ class FavoriteController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Mengedit menu favorit.
      */
     public function edit(string $id)
     {
@@ -76,7 +76,7 @@ class FavoriteController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Mengupdate menu favorit.
      */
     public function update(Request $request, string $id)
     {
@@ -84,7 +84,7 @@ class FavoriteController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Menghapus menu favorit.
      */
     public function destroy(string $id)
     {

@@ -66,7 +66,17 @@ class ReservationController extends Controller
                 },
             ],
             'table_id' => 'required|exists:tables,id',
-            'guest_count' => 'required|integer|min:1',
+            'guest_count' => [
+                'required',
+                'integer',
+                'min:1',
+                function ($attribute, $value, $fail) use ($request) {
+                    $table = Table::find($request->table_id);
+                    if ($table && $value > $table->capacity) {
+                        $fail("Jumlah tamu melebihi kapasitas meja (Maks: {$table->capacity} orang).");
+                    }
+                },
+            ],
             'notes' => 'nullable|string',
             'menus' => 'nullable|array',
             'menus.*' => 'integer|min:0'
@@ -144,13 +154,28 @@ class ReservationController extends Controller
                 },
             ],
             'table_id' => 'required|exists:tables,id',
-            'guest_count' => 'required|integer|min:1',
+            'guest_count' => [
+                'required',
+                'integer',
+                'min:1',
+                function ($attribute, $value, $fail) use ($request) {
+                    $table = Table::find($request->table_id);
+                    if ($table && $value > $table->capacity) {
+                        $fail("Jumlah tamu melebihi kapasitas meja (Maks: {$table->capacity} orang).");
+                    }
+                },
+            ],
             'notes' => 'nullable|string',
             'menus' => 'nullable|array',
             'menus.*' => 'integer|min:0'
         ]);
 
-        // 3. Update Data Reservasi
+        // 3. Hitung total lama sebelum update (untuk cek kekurangan bayar)
+        $oldTotal = $reservation->menus->sum(function($menu) {
+            return $menu->price * $menu->pivot->quantity;
+        });
+
+        // 4. Update Data Reservasi
         $reservation->update([
             'table_id' => $request->table_id,
             'reservation_date' => $request->reservation_date,
@@ -158,7 +183,7 @@ class ReservationController extends Controller
             'notes' => $request->notes,
         ]);
 
-        // 4. Update Pesanan Menu (Menggunakan sync)
+        // 5. Update Pesanan Menu (Menggunakan sync)
         $syncData = [];
         if ($request->has('menus')) {
             foreach ($request->menus as $menuId => $quantity) {
@@ -171,8 +196,20 @@ class ReservationController extends Controller
         // Sync akan menghapus menu lama dan mengganti dengan yang baru
         $reservation->menus()->sync($syncData);
 
+        // 6. Hitung total baru setelah sync
+        $reservation->load('menus'); // Refresh relasi
+        $newTotal = $reservation->menus->sum(function($menu) {
+            return $menu->price * $menu->pivot->quantity;
+        });
+
+        $message = 'Perubahan reservasi berhasil disimpan.';
+        if ($newTotal > $oldTotal) {
+            $deficiency = $newTotal - $oldTotal;
+            $message .= " Anda menambah pesanan. Terdapat kekurangan pembayaran sebesar Rp " . number_format($deficiency, 0, ',', '.') . " yang dapat dibayarkan di tempat.";
+        }
+
         return redirect()->route('reservations.index')
-                         ->with('success', 'Perubahan reservasi berhasil disimpan.');
+                         ->with('success', $message);
     }
 
     /**
