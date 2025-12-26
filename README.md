@@ -1,59 +1,124 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🍷 Technoir Bistro
+
+[![Laravel](https://img.shields.io/badge/Laravel-12.x-FF2D20?style=for-the-badge&logo=laravel)](https://laravel.com)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.0-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com)
+[![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?style=for-the-badge&logo=php)](https://www.php.net)
+
+**Technoir Bistro** adalah platform manajemen restoran modern yang dibangun dengan Laravel. Aplikasi ini dirancang untuk menangani reservasi meja, manajemen menu, dan integrasi pembayaran melalui Xendit, memberikan pengalaman premium baik untuk pelanggan maupun administrator.
+
+---
+
+## ✨ Fitur Utama
+
+-   **🛒 Manajemen Menu:** Kelola katalog makanan dan minuman dengan kategori yang rapi.
+-   **📅 Reservasi Meja:** Sistem booking meja secara real-time untuk pelanggan.
+-   **💳 Integrasi Xendit:** Pembayaran aman dan otomatis menggunakan Payment Gateway Xendit.
+-   **🛡️ Panel Admin:** Dashboard intuitif untuk mengelola konten dan melihat laporan reservasi.
+-   **🧪 Robust Testing:** Dilengkapi dengan Feature Tests untuk menjamin keandalan fitur vital.
+
+---
+
+## 🚀 Panduan Instalasi
+
+Ikuti langkah-langkah di bawah ini untuk menjalankan project ini di lingkungan lokal Anda.
+
+### 📋 Prasyarat
+
+Pastikan Anda sudah menginstal:
+
+-   PHP >= 8.2
+-   Composer
+-   Node.js & NPM
+-   MySQL / MariaDB
+
+### 🛠️ Langkah-Langkah
+
+1.  **Clone Repository**
+
+    ```bash
+    git clone https://github.com/mrdaemonn27/technoir-bistro.git
+    cd technoir-bistro
+    ```
+
+2.  **Instalasi Dependensi**
+
+    ```bash
+    composer install
+    npm install
+    ```
+
+3.  **Konfigurasi Environment**
+    Salin file `.env.example` menjadi `.env`:
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    > **Catatan Penting:** Buka file `.env` dan sesuaikan konfigurasi database (`DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`) serta API Key Xendit.
+    > **Catatan Penting:** Saya sudah memberikan api key xendit di LMS.
+
+4.  **Generate Application Key**
+
+    ```bash
+    php artisan key:generate
+    ```
+
+5.  **Migrasi & Seed Database**
+    Jalankan migrasi untuk membuat tabel dan masukkan data awal (menu & meja):
+
+    ```bash
+    php artisan migrate --seed
+    ```
+
+6.  **Build Aset Frontend**
+    ```bash
+    npm run build
+    ```
+
+---
+
+## 💻 Menjalankan Aplikasi
+
+Atau jalankan secara manual di dua terminal terpisah:
+
+**Terminal 1 (Backend):**
+
+```bash
+php artisan serve
+```
+
+**Terminal 2 (Frontend/Vite):**
+
+```bash
+npm run dev
+```
+
+Akses aplikasi di: [http://localhost:8000](http://localhost:8000)
+
+---
+
+## 🧪 Menjalankan Test
+
+Untuk memastikan semua fungsi berjalan dengan baik, Anda dapat menjalankan suite pengujian menggunakan Pest atau Artisan:
+
+```bash
+php artisan test
+```
+
+---
+
+## 🛠️ Integrasi Xendit
+
+Aplikasi ini menggunakan Xendit sebagai Payment Gateway. Pastikan variabel berikut terisi di `.env`:
+
+```env
+XENDIT_SECRET_KEY=xnd_development_...
+XENDIT_WEBHOOK_TOKEN=...
+XENDIT_PUBLIC_KEY=xnd_public_...
+```
+
+---
 
 <p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+  Proudly powered by Laravel & Tailwind CSS.
 </p>
-
-## About Laravel
-
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
-
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
-
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-## Laravel Sponsors
-
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
-
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
