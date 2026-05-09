@@ -27,7 +27,7 @@ class _MenuScreenState extends State<MenuScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('token');
 
-    final url = Uri.parse('[http://10.0.2.2:8000/api/menus](http://10.0.2.2:8000/api/menus)');
+    final url = Uri.parse('http://10.0.2.2:8000/api/menus');
 
     try {
       final response = await http.get(
@@ -72,13 +72,16 @@ class _MenuScreenState extends State<MenuScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
-        title: const Text('Menu Technoir', style: TextStyle(color: Colors.cyan, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Menu Technoir',
+          style: TextStyle(color: Colors.cyan, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.black,
         actions: [
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.redAccent),
             onPressed: logout,
-          )
+          ),
         ],
       ),
       body: isLoading
@@ -91,7 +94,9 @@ class _MenuScreenState extends State<MenuScreen> {
                 return Card(
                   color: Colors.grey[900],
                   margin: const EdgeInsets.only(bottom: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(12.0),
                     child: Row(
@@ -105,7 +110,8 @@ class _MenuScreenState extends State<MenuScreen> {
                                   width: 80,
                                   height: 80,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      _buildPlaceholder(),
                                 )
                               : _buildPlaceholder(),
                         ),
@@ -117,17 +123,28 @@ class _MenuScreenState extends State<MenuScreen> {
                             children: [
                               Text(
                                 menu['name'],
-                                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 menu['category']['name'] ?? 'Kategori',
-                                style: const TextStyle(color: Colors.cyan, fontSize: 12),
+                                style: const TextStyle(
+                                  color: Colors.cyan,
+                                  fontSize: 12,
+                                ),
                               ),
                               const SizedBox(height: 8),
                               Text(
                                 'Rp ${menu['price']}',
-                                style: const TextStyle(color: Colors.greenAccent, fontSize: 16, fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  color: Colors.greenAccent,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ],
                           ),
