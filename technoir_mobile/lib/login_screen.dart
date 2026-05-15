@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen.dart';
 import 'register_screen.dart';
+import 'admin_dashboard_screen.dart'; // <-- TAMBAHKAN IMPORT INI
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -38,9 +39,13 @@ class _LoginScreenState extends State<LoginScreen> {
       if (response.statusCode == 200 && data['success'] == true) {
         SharedPreferences prefs = await SharedPreferences.getInstance();
         
-        // --- PERBAIKAN: Simpan Token DAN Username ---
+        // --- 1. Simpan Token dan Username ---
         await prefs.setString('token', data['token']);
         await prefs.setString('username', data['user']['username']); 
+        
+        // --- 2. CEK & SIMPAN STATUS ADMIN ---
+        bool isAdmin = data['user']['is_admin'] == 1 || data['user']['is_admin'] == true;
+        await prefs.setBool('is_admin', isAdmin);
         // --------------------------------------------
 
         if (!mounted) return;
@@ -52,11 +57,23 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
         if (!mounted) return;
-        // Pindah ke HomeScreen yang baru saja kita buat desainnya
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
+        
+        // --- 3. PEMBELOKAN ARAH BERDASARKAN ROLE ---
+        if (isAdmin) {
+          // Jika Admin, pindah ke Dashboard Admin
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
+          );
+        } else {
+          // Jika User biasa, pindah ke Home Screen
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
+        }
+        // --------------------------------------------
+
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(

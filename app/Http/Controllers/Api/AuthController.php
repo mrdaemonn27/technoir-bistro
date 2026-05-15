@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage; // <--- TAMBAHKAN BARIS INI
 
 class AuthController extends Controller
 {
@@ -34,7 +35,6 @@ class AuthController extends Controller
             'user' => $user
         ]);
     } 
-    // ^^^ Perhatikan, kurung kurawal di sini HANYA menutup fungsi login, bukan class!
 
     public function register(Request $request)
     {
@@ -68,6 +68,54 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Registrasi berhasil',
             'token' => $token,
+            'user' => $user
+        ]);
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $validator = Validator::make($request->all(), [
+            'username' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            // Tambahkan validasi untuk foto (avatar)
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg|max:2048', 
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first()
+            ], 400);
+        }
+
+        $user->username = $request->username;
+        $user->email = $request->email;
+
+        if ($request->filled('password')) {
+            $user->password = Hash::make($request->password);
+        }
+
+        // --- LOGIKA MENYIMPAN FOTO ---
+        if ($request->hasFile('avatar')) {
+            // Hapus avatar lama jika ada (agar storage tidak penuh)
+            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+                Storage::disk('public')->delete($user->avatar);
+            }
+            
+            // Simpan foto baru ke folder storage/app/public/avatars
+            $path = $request->file('avatar')->store('avatars', 'public');
+            
+            // Simpan path-nya ke kolom database (pastikan Anda punya kolom 'avatar' di tabel users)
+            $user->avatar = $path; 
+        }
+
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profil berhasil diperbarui',
             'user' => $user
         ]);
     }
