@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart'; // <-- TAMBAHKAN IMPORT INI
-import 'menu_screen.dart'; 
-import 'cart_screen.dart'; 
-import 'user_screen.dart'; 
+import 'package:url_launcher/url_launcher.dart'; 
+import 'menu_screen.dart';
+import 'cart_screen.dart';
+import 'user_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,16 +15,25 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final int _selectedIndex = 0; 
-  String _userName = 'User'; 
+  final int _selectedIndex = 0;
+  String _userName = 'User';
+
+  // --- VARIABEL DATA DINAMIS ---
+  List<dynamic> _bestSellingDishes = [];
+  bool _isLoadingMenus = true;
   
-  // Warna utama sesuai dengan referensi wireframe
-  final Color _primaryOrange = const Color(0xFFFF6B00);
+  List<Map<String, dynamic>> _bestChefs = [];
+  bool _isLoadingChefs = true;
+
+  // Warna utama sesuai gambar
+  final Color _primaryOrange = const Color(0xFFFE8C00);
 
   @override
   void initState() {
     super.initState();
-    _loadUserData(); 
+    _loadUserData();
+    _fetchMenus(); // Ambil menu dari database Laravel
+    _fetchChefs(); // Ambil koki (Siap untuk API)
   }
 
   Future<void> _loadUserData() async {
@@ -32,31 +43,60 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // --- FUNGSI UNTUK MEMBUKA GOOGLE MAPS ---
-  Future<void> _launchMaps() async {
-    // Koordinat lokasi Technoir Bistro (Contoh ini menggunakan Monas Jakarta)
-    // Silakan ganti dengan latitude dan longitude restoran asli Anda
-    const double lat = -6.175392;
-    const double lng = 106.827153;
+  // --- MENGAMBIL MENU DARI DATABASE LARAVEL ---
+  Future<void> _fetchMenus() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('token');
     
-    // URL ini akan otomatis membuka Google Maps mode "Direction" (Rute)
-    final Uri googleMapsUrl = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng');
-
+    final url = Uri.parse('http://10.0.2.2:8000/api/menus');
+    
     try {
-      // Disederhanakan agar tidak memicu error Lookup LaunchMode pada beberapa versi
-      if (!await launchUrl(googleMapsUrl)) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Tidak dapat membuka Google Maps'), backgroundColor: Colors.red),
-          );
-        }
+      final response = await http.get(url, headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      });
+      final data = json.decode(response.body);
+      
+      if (response.statusCode == 200 && data['success'] == true) {
+        setState(() {
+          _bestSellingDishes = data['data'];
+          _isLoadingMenus = false;
+        });
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
+      setState(() => _isLoadingMenus = false);
+    }
+  }
+
+  // --- MENGAMBIL DATA KOKI (KERANGKA API DINAMIS) ---
+  Future<void> _fetchChefs() async {
+    // Saat ini menggunakan data dummy, 
+    // Nanti tinggal diganti dengan http.get() ke /api/chefs
+    await Future.delayed(const Duration(seconds: 1)); 
+    setState(() {
+      _bestChefs = [
+        {'name': 'Chef Juna', 'image': 'https://images.unsplash.com/photo-1583394838336-acd977736f90?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'},
+        {'name': 'Chef Renatta', 'image': 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'},
+        {'name': 'Chef Arnold', 'image': 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'},
+        {'name': 'Chef Gordon', 'image': 'https://images.unsplash.com/photo-1607631568010-a87245c0daf8?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'},
+      ];
+      _isLoadingChefs = false;
+    });
+  }
+
+  // --- FUNGSI UNTUK MEMBUKA GOOGLE MAPS ---
+  Future<void> _launchMaps() async {
+    const double lat = -6.175392;
+    const double lng = 106.827153;
+    final Uri googleMapsUrl = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng',
+    );
+    try {
+      if (!await launchUrl(googleMapsUrl)) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tidak dapat membuka Google Maps')));
       }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -69,18 +109,15 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildOrangeHeader(),
-            const SizedBox(height: 20),
-            _buildSectionHeader('Categories', 'See All'),
-            _buildCategories(),
+            const SizedBox(height: 24),
+            _buildSectionHeader('Best selling dish', showSeeAll: true),
+            _buildBestSellingDishes(),
             const SizedBox(height: 25),
-            _buildSectionHeader('Popular Now', 'See All'),
-            _buildPopularNowList(),
+            _buildSectionHeader('Our Best Chefs'),
+            _buildBestChefs(),
             const SizedBox(height: 25),
-            _buildSectionHeader('Top Chefs', 'See all'),
-            _buildTopChefsList(),
-            const SizedBox(height: 25),
-            _buildSectionHeader('Location & Navigation', 'Open Maps'), // Judul diubah
-            _buildMapSection(), 
+            _buildSectionHeader('Location and Navigation'),
+            _buildMapSection(),
             const SizedBox(height: 30),
           ],
         ),
@@ -89,11 +126,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- KOMPONEN HEADER ORANYE (MELENGKUNG BAWAH) ---
+  // --- KOMPONEN HEADER ORANYE (DESAIN BARU) ---
   Widget _buildOrangeHeader() {
     return Container(
       padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 20, // Padding status bar HP
+        top: MediaQuery.of(context).padding.top + 20, 
         left: 20,
         right: 20,
         bottom: 30,
@@ -101,8 +138,8 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: _primaryOrange,
         borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
+          bottomLeft: Radius.circular(40),
+          bottomRight: Radius.circular(40),
         ),
       ),
       child: Column(
@@ -127,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 4),
                       const Text(
-                        'Check Amazing Menus...',
+                        'Check Our Amazing Menus...',
                         style: TextStyle(color: Colors.white70, fontSize: 14),
                       ),
                     ],
@@ -136,263 +173,140 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: const BoxDecoration(color: Colors.white24, shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2), 
+                  shape: BoxShape.circle,
+                ),
                 child: const Icon(Icons.notifications_none, color: Colors.white),
               ),
             ],
           ),
           const SizedBox(height: 25),
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    children: [
-                      Icon(Icons.search, color: _primaryOrange),
-                      const SizedBox(width: 10),
-                      // --- PERBAIKAN: MENGGANTI TEKS MENJADI TEXTFIELD AKTIF ---
-                      Expanded(
-                        child: TextField(
-                          textAlignVertical: TextAlignVertical.center,
-                          style: const TextStyle(fontSize: 15, color: Colors.black87),
-                          decoration: InputDecoration(
-                            hintText: 'Looking for?', 
-                            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 15),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          onSubmitted: (value) {
-                            // Saat pengguna menekan enter/search di keyboard, navigasi ke MenuScreen
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (context) => const MenuScreen()),
-                            );
-                          },
-                        ),
-                      ),
-                      // --------------------------------------------------------
-                    ],
+          // Kolom Pencarian Transparan
+          Container(
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(25),
+              border: Border.all(color: Colors.white70, width: 1),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                const Icon(Icons.search, color: Colors.white, size: 24),
+                const SizedBox(width: 10),
+                Container(width: 1, height: 20, color: Colors.white70), // Garis pemisah
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    style: const TextStyle(color: Colors.white, fontSize: 15),
+                    decoration: const InputDecoration(
+                      hintText: 'Search...',
+                      hintStyle: TextStyle(color: Colors.white70, fontSize: 15),
+                      border: InputBorder.none,
+                      isDense: true,
+                    ),
+                    onSubmitted: (value) {
+                      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MenuScreen()));
+                    },
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                height: 50,
-                width: 50,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Icon(Icons.tune, color: _primaryOrange),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  // --- HEADER SEKSI (TITLE & SEE ALL) ---
-  Widget _buildSectionHeader(String title, String action) {
+  // --- HEADER SEKSI ---
+  Widget _buildSectionHeader(String title, {bool showSeeAll = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
-          Text(action, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: _primaryOrange)),
-        ],
-      ),
-    );
-  }
-
-  // --- KOMPONEN KATEGORI GAMBAR BULAT ---
-  Widget _buildCategories() {
-    List<Map<String, String>> categories = [
-      {'title': 'Restaurant', 'img': 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'},
-      {'title': 'Caffe', 'img': 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'},
-      {'title': 'Fine Dining', 'img': 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'},
-      {'title': 'Steak', 'img': 'https://images.unsplash.com/photo-1544025162-d76694265947?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'},
-    ];
-
-    return Container(
-      height: 90,
-      margin: const EdgeInsets.only(top: 16),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: categories.length,
-        itemBuilder: (context, index) {
-          return Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Column(
+          if (showSeeAll)
+            Row(
               children: [
-                Container(
-                  height: 70,
-                  width: 70,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    image: DecorationImage(
-                      image: NetworkImage(categories[index]['img']!),
-                      fit: BoxFit.cover,
-                      colorFilter: const ColorFilter.mode(Colors.black38, BlendMode.darken),
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      categories[index]['title']!,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
+                Text('See All', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: _primaryOrange)),
+                Icon(Icons.arrow_right, color: _primaryOrange, size: 18),
               ],
             ),
-          );
-        },
-      ),
-    );
-  }
-
-  // --- LIST "POPULAR NOW" (KARTU BESAR WIREFRAME) ---
-  Widget _buildPopularNowList() {
-    return SizedBox(
-      height: 260,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.only(left: 20, top: 16, bottom: 16),
-        clipBehavior: Clip.none,
-        children: [
-          _buildPopularCard(
-            title: 'Steak House',
-            subtitle: 'Bundling',
-            rating: '4.8',
-            price: 'Rp 35.000',
-            imageUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-          ),
-          _buildPopularCard(
-            title: 'Steak Special',
-            subtitle: 'Bundling',
-            rating: '4.9',
-            price: 'Rp 40.000',
-            imageUrl: 'https://images.unsplash.com/photo-1558030006-450675393462?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildPopularCard({required String title, required String subtitle, required String rating, required String price, required String imageUrl}) {
-    return Container(
-      width: 280,
-      margin: const EdgeInsets.only(right: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [BoxShadow(color: Color.fromRGBO(0, 0, 0, 0.05), blurRadius: 10, offset: Offset(0, 5))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
-                child: Image.network(imageUrl, height: 140, width: double.infinity, fit: BoxFit.cover),
-              ),
-              Positioned(
-                top: 10,
-                left: 10,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.star, color: Colors.amber, size: 14),
-                      const SizedBox(width: 4),
-                      Text('$rating (1k+ Review)', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
-                    ],
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 10,
-                right: 10,
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                  child: const Icon(Icons.favorite_border, color: Colors.grey, size: 18),
-                ),
-              ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
+  // --- LIST "BEST SELLING DISH" (DATA DINAMIS) ---
+  Widget _buildBestSellingDishes() {
+    if (_isLoadingMenus) {
+      return const SizedBox(height: 180, child: Center(child: CircularProgressIndicator()));
+    }
+    
+    if (_bestSellingDishes.isEmpty) {
+      return const SizedBox(height: 180, child: Center(child: Text("Belum ada menu tersedia.")));
+    }
+
+    return SizedBox(
+      height: 190,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.only(left: 20, top: 16, bottom: 8),
+        itemCount: _bestSellingDishes.length > 5 ? 5 : _bestSellingDishes.length, // Tampilkan maksimal 5
+        itemBuilder: (context, index) {
+          final menu = _bestSellingDishes[index];
+          
+          // --- LOGIKA PINTAR UNTUK GAMBAR ---
+          String? imageUrl = menu['image'];
+          // Jika URL gambar tidak kosong dan BUKAN diawali 'http' (berarti gambar lokal hasil upload admin)
+          if (imageUrl != null && imageUrl.isNotEmpty && !imageUrl.startsWith('http')) {
+            // Gabungkan dengan alamat localhost emulator
+            imageUrl = 'http://10.0.2.2:8000/storage/$imageUrl';
+          }
+
+          return Container(
+            width: 160,
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+              ],
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87)),
-                    const Icon(Icons.bookmark_border, color: Color(0xFF86C19F)),
-                  ],
+                ClipRRect(
+                  borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), topRight: Radius.circular(16)),
+                  child: imageUrl != null && imageUrl.isNotEmpty
+                      ? Image.network(
+                          imageUrl, 
+                          height: 110, 
+                          width: double.infinity, 
+                          fit: BoxFit.cover, 
+                          errorBuilder: (c,e,s) => Container(
+                            height: 110, 
+                            color: Colors.grey[200],
+                            child: const Icon(Icons.fastfood, color: Colors.grey),
+                          )
+                        )
+                      : Container(
+                          height: 110, 
+                          color: Colors.grey[200],
+                          child: const Icon(Icons.fastfood, color: Colors.grey),
+                        ),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(Icons.local_offer, size: 14, color: _primaryOrange),
-                    const SizedBox(width: 4),
-                    Text(
-                      '$price  •  $subtitle',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --- LIST "TOP CHEFS" ---
-  Widget _buildTopChefsList() {
-    List<Map<String, String>> chefs = [
-      {'name': 'Esther T.', 'img': 'https://images.unsplash.com/photo-1583394838336-acd977736f90?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'},
-      {'name': 'Jenny M.', 'img': 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'},
-      {'name': 'Jacob U.', 'img': 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'},
-      {'name': 'Bessi K.', 'img': 'https://images.unsplash.com/photo-1607631568010-a87245c0daf8?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'},
-    ];
-
-    return Container(
-      height: 100,
-      margin: const EdgeInsets.only(top: 16),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: chefs.length,
-        itemBuilder: (context, index) {
-          return Padding(
-            padding: const EdgeInsets.only(right: 20),
-            child: Column(
-              children: [
-                CircleAvatar(
-                  radius: 32,
-                  backgroundImage: NetworkImage(chefs[index]['img']!),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  chefs[index]['name']!,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87),
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    menu['name'],
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
@@ -402,74 +316,126 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- BAGIAN "NEARBY MAP" YANG SUDAH TERINTEGRASI NAVIGASI GOOGLE MAPS ---
+  // --- LIST "OUR BEST CHEFS" (DATA DINAMIS SIAP API) ---
+  Widget _buildBestChefs() {
+    if (_isLoadingChefs) {
+      return const SizedBox(height: 100, child: Center(child: CircularProgressIndicator()));
+    }
+
+    return Container(
+      height: 110,
+      margin: const EdgeInsets.only(top: 16),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: _bestChefs.length,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 24),
+            child: Column(
+              children: [
+                CircleAvatar(
+                  radius: 36,
+                  backgroundImage: NetworkImage(_bestChefs[index]['image']),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _bestChefs[index]['name'],
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // --- BAGIAN "LOCATION AND NAVIGATION" ---
   Widget _buildMapSection() {
     return Padding(
       padding: const EdgeInsets.only(left: 20, right: 20, top: 16),
-      child: GestureDetector(
-        onTap: _launchMaps, // Panggil fungsi buka peta saat kartu diklik
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Stack(
-            children: [
-              // Peta Statis Placeholder
-              Image.network(
-                'https://images.unsplash.com/photo-1524661135-423995f22d0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-                height: 180,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
-              // Overlay sedikit gelap agar teks lebih mudah dibaca
-              Container(
-                height: 180,
-                color: Colors.black.withOpacity(0.1),
-              ),
-              // Tombol Card Navigasi
-              Positioned(
-                bottom: 10,
-                left: 10,
-                right: 10,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(15),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))
-                    ]
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          children: [
+            // Gambar Peta Placeholder
+            Image.network(
+              'https://images.unsplash.com/photo-1524661135-423995f22d0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+              height: 200,
+              width: double.infinity,
+              fit: BoxFit.cover,
+            ),
+            Container(height: 200, color: Colors.black.withOpacity(0.05)), // Filter redup
+            // Overlay Card Info Restoran
+            Positioned(
+              bottom: 12,
+              left: 12,
+              right: 12,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))],
+                ),
+                child: Row(
+                  children: [
+                    // Gambar Restoran Kecil
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.network(
+                        'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80',
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Detail Alamat
+                    Expanded(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Text('10.00 - 22.00', style: TextStyle(color: _primaryOrange, fontWeight: FontWeight.bold, fontSize: 11)),
+                          const SizedBox(height: 2),
                           const Text('Technoir Bistro', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87)),
                           const SizedBox(height: 2),
-                          Text('Jl. Jend. Sudirman No. 1, Jakarta', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                          Row(
+                            children: [
+                              Icon(Icons.location_on, size: 12, color: Colors.grey[500]),
+                              const SizedBox(width: 2),
+                              Expanded(
+                                child: Text(
+                                  'Jl. Jend. Sudirman No.1', 
+                                  style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    ),
+                    // Tombol Navigasi Oranye
+                    GestureDetector(
+                      onTap: _launchMaps,
+                      child: Container(
+                        height: 45,
+                        width: 45,
                         decoration: BoxDecoration(
                           color: _primaryOrange,
                           borderRadius: BorderRadius.circular(12),
-                          boxShadow: [BoxShadow(color: _primaryOrange.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 3))],
                         ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.directions, color: Colors.white, size: 16),
-                            SizedBox(width: 6),
-                            Text('Navigasi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                          ],
-                        ),
-                      )
-                    ],
-                  ),
+                        child: const Icon(Icons.near_me, color: Colors.white, size: 24),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -481,11 +447,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: const BoxDecoration(
         color: Colors.white,
         boxShadow: [
-          BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.05),
-            blurRadius: 20,
-            offset: Offset(0, -5),
-          ),
+          BoxShadow(color: Color.fromRGBO(0, 0, 0, 0.05), blurRadius: 20, offset: Offset(0, -5)),
         ],
       ),
       child: SafeArea(
@@ -494,10 +456,10 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(Icons.home_filled, 'Home', 0),
-              _buildNavItem(Icons.search, 'Discover', 1),
-              _buildNavItem(Icons.shopping_cart_outlined, 'Cart', 2),
-              _buildNavItem(Icons.person_outline, 'Profile', 3), 
+              _buildNavItem(Icons.explore, 'Explore', 0),
+              _buildNavItem(Icons.calendar_today_outlined, 'Reservation', 1),
+              _buildNavItem(Icons.restaurant_menu, 'Menu', 2),
+              _buildNavItem(Icons.person_outline, 'Profile', 3),
             ],
           ),
         ),
@@ -510,39 +472,27 @@ class _HomeScreenState extends State<HomeScreen> {
     return GestureDetector(
       onTap: () {
         if (index == 0) {
-          // Tetap di Home
+          // Tetap di Home (Explore)
         } else if (index == 1) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const MenuScreen()),
-          );
+          // Karena Reservasi ada di dalam CartScreen
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const CartScreen()));
         } else if (index == 2) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const CartScreen()),
-          );
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MenuScreen()));
         } else if (index == 3) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const UserScreen()),
-          );
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const UserScreen()));
         }
       },
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            color: isSelected ? _primaryOrange : Colors.grey[500], 
-            size: 28,
-          ),
+          Icon(icon, color: isSelected ? _primaryOrange : Colors.grey[400], size: 26),
           const SizedBox(height: 4),
           Text(
             label,
             style: TextStyle(
               fontSize: 10,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected ? _primaryOrange : Colors.grey[500],
+              color: isSelected ? _primaryOrange : Colors.grey[400],
             ),
           ),
         ],

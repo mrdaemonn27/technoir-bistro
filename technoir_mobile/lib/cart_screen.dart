@@ -4,7 +4,8 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen.dart';
 import 'menu_screen.dart';
-import 'user_screen.dart'; // <-- TAMBAHKAN IMPORT INI
+import 'user_screen.dart';
+import 'reservation_form_screen.dart'; // <-- 1. PERBAIKAN: Tambahkan import halaman form reservasi
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -14,8 +15,9 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  final int _selectedIndex = 2; // Index 2 untuk Cart
+  final int _selectedIndex = 1; // Index 1 untuk Reservation/Cart di desain baru
 
+  // --- VARIABEL CART (TAB MENDATANG) ---
   List<Map<String, dynamic>> cartItems = [];
   bool _isLoadingCart = true;
   bool _isSubmitting = false;
@@ -25,13 +27,25 @@ class _CartScreenState extends State<CartScreen> {
   String selectedGuests = '2 People';
   final List<String> guestOptions = ['1 Person', '2 People', '3 People', '4 People', '5+ People'];
 
+  // --- VARIABEL HISTORY (TAB RIWAYAT) ---
+  List<dynamic> _historyItems = [];
+  bool _isLoadingHistory = true;
+
+  // --- KONTROL TAB ---
+  int _currentTab = 0; // 0 = Mendatang, 1 = Riwayat
+  final Color _primaryOrange = const Color(0xFFFE8C00);
+
   @override
   void initState() {
     super.initState();
     _loadCartData();
+    _fetchHistory();
   }
 
-  // 1. FUNGSI MENGAMBIL DATA KERANJANG DINAMIS DARI MEMORI HP
+  // ===========================================================================
+  // FUNGSI LOGIKA DATA DINAMIS
+  // ===========================================================================
+
   Future<void> _loadCartData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? cartString = prefs.getString('cart');
@@ -44,60 +58,43 @@ class _CartScreenState extends State<CartScreen> {
     setState(() => _isLoadingCart = false);
   }
 
-  // 2. FUNGSI MENYIMPAN PERUBAHAN JUMLAH (QTY) KE MEMORI HP
   Future<void> _updateQuantity(int index, int delta) async {
     setState(() {
       cartItems[index]['quantity'] += delta;
       if (cartItems[index]['quantity'] <= 0) {
-        cartItems.removeAt(index); // Hapus jika jumlahnya 0
+        cartItems.removeAt(index);
       }
     });
-    
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('cart', json.encode(cartItems));
   }
 
-  // 3. FUNGSI PEMILIH TANGGAL (DATE PICKER)
-  Future<void> _pickDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 30)), // Maksimal booking 30 hari ke depan
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(primary: Color(0xFF282A45)),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null) {
-      setState(() => selectedDate = picked);
+  Future<void> _fetchHistory() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('token');
+
+    final url = Uri.parse('http://10.0.2.2:8000/api/reservations/history');
+
+    try {
+      final response = await http.get(url, headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      });
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        setState(() {
+          _historyItems = data['data'];
+          _isLoadingHistory = false;
+        });
+      } else {
+        setState(() => _isLoadingHistory = false);
+      }
+    } catch (e) {
+      setState(() => _isLoadingHistory = false);
     }
   }
 
-  // 4. FUNGSI PEMILIH WAKTU (TIME PICKER)
-  Future<void> _pickTime(BuildContext context) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: const TimeOfDay(hour: 18, minute: 0),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(primary: Color(0xFF282A45)),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null) {
-      setState(() => selectedTime = picked);
-    }
-  }
-
-  // 5. FUNGSI KIRIM DATA KE LARAVEL (CHECKOUT)
   Future<void> _submitBooking() async {
     if (selectedDate == null || selectedTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -106,19 +103,10 @@ class _CartScreenState extends State<CartScreen> {
       return;
     }
 
-    if (cartItems.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Keranjang Anda masih kosong!'), backgroundColor: Colors.red),
-      );
-      return;
-    }
-
     setState(() => _isSubmitting = true);
-
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('token');
 
-    // Nanti Anda harus membuat endpoint POST /api/reservations di Laravel
     final url = Uri.parse('http://10.0.2.2:8000/api/reservations');
 
     try {
@@ -133,7 +121,7 @@ class _CartScreenState extends State<CartScreen> {
           'reservation_date': selectedDate!.toIso8601String().split('T')[0],
           'reservation_time': '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}',
           'guests': selectedGuests,
-          'items': cartItems, // Mengirim data makanan yang dipesan
+          'items': cartItems, 
           'total_price': subtotal + (subtotal * 0.11),
         }),
       );
@@ -141,15 +129,17 @@ class _CartScreenState extends State<CartScreen> {
       final data = json.decode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // Kosongkan keranjang setelah berhasil
         await prefs.remove('cart');
-        setState(() => cartItems.clear());
+        setState(() {
+          cartItems.clear();
+          _currentTab = 1; // Pindah ke tab riwayat setelah sukses
+        });
+        _fetchHistory(); // Refresh riwayat
 
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Booking Berhasil! Menunggu konfirmasi admin.'), backgroundColor: Colors.green),
         );
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -159,7 +149,7 @@ class _CartScreenState extends State<CartScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Belum ada API Backend: $e'), backgroundColor: Colors.orange),
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.orange),
       );
     } finally {
       setState(() => _isSubmitting = false);
@@ -174,140 +164,392 @@ class _CartScreenState extends State<CartScreen> {
     });
   }
 
-  void _onItemTapped(int index) {
-    if (index == 0) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
-    } else if (index == 1) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MenuScreen()));
-    } else if (index == 3) {
-      // <-- PERBAIKAN: Menambahkan rute ke UserScreen
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const UserScreen()));
-    }
-  }
+  // ===========================================================================
+  // ANTARMUKA PENGGUNA (UI)
+  // ===========================================================================
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFFAFAFA),
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: const Text(
-          'Your Order',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 24),
-        ),
+      body: Column(
+        children: [
+          // HEADER MELENGKUNG ORANYE
+          _buildOrangeHeader(),
+          
+          // TAB CONTROL (MENDATANG vs RIWAYAT)
+          _buildCustomTabs(),
+
+          // KONTEN UTAMA DINAMIS
+          Expanded(
+            child: _currentTab == 0 ? _buildUpcomingTab() : _buildHistoryTab(),
+          ),
+        ],
       ),
-      body: _isLoadingCart
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 1. BAGIAN RESERVASI MEJA
-                  const Text('Table Reservation', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
-                  const SizedBox(height: 12),
-                  _buildReservationForm(),
-                  const SizedBox(height: 30),
-
-                  // 2. BAGIAN PRE-ORDER MENU
-                  const Text('Pre-ordered Menu', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
-                  const SizedBox(height: 12),
-                  
-                  if (cartItems.isEmpty)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-                      child: Column(
-                        children: [
-                          const Icon(Icons.remove_shopping_cart, size: 50, color: Colors.grey),
-                          const SizedBox(height: 10),
-                          const Text('Keranjang masih kosong', style: TextStyle(color: Colors.grey)),
-                          const SizedBox(height: 10),
-                          TextButton(
-                            onPressed: () => _onItemTapped(1), 
-                            child: const Text('Lihat Menu', style: TextStyle(color: Color(0xFF2C74B3)))
-                          )
-                        ],
-                      ),
-                    )
-                  else
-                    ...cartItems.asMap().entries.map((entry) => _buildCartItem(entry.key, entry.value)).toList(),
-                  
-                  const SizedBox(height: 20),
-
-                  // 3. BAGIAN RINGKASAN PEMBAYARAN
-                  if (cartItems.isNotEmpty) _buildPaymentSummary(),
-                  const SizedBox(height: 30),
-
-                  // 4. TOMBOL BOOKING
-                  SizedBox(
-                    width: double.infinity,
-                    height: 55,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF282A45),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        elevation: 5,
-                        shadowColor: const Color(0xFF282A45).withOpacity(0.5),
-                      ),
-                      onPressed: _isSubmitting ? null : _submitBooking,
-                      child: _isSubmitting
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text(
-                              'CONFIRM BOOKING',
-                              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2),
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
       bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
-  // --- KOMPONEN FORM RESERVASI ---
+  // --- HEADER ORANYE ---
+  Widget _buildOrangeHeader() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 10,
+        bottom: 25,
+        left: 20,
+        right: 20,
+      ),
+      decoration: BoxDecoration(
+        color: _primaryOrange,
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Logo TB
+          const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('T', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF5D1D20))),
+              Icon(Icons.wine_bar, size: 28, color: Color(0xFF5D1D20)),
+              Text('B', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF5D1D20))),
+            ],
+          ),
+          // Bell Icon
+          Align(
+            alignment: Alignment.centerRight,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.notifications_none, color: Colors.white, size: 22),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  // --- CUSTOM TABS ---
+  Widget _buildCustomTabs() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _currentTab = 0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _currentTab == 0 ? Colors.white : Colors.transparent,
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: _currentTab == 0 
+                      ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)] 
+                      : [],
+                  border: _currentTab == 0 ? Border.all(color: _primaryOrange.withOpacity(0.3)) : null,
+                ),
+                child: Center(
+                  child: Text(
+                    'MENDATANG',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: _currentTab == 0 ? _primaryOrange : Colors.grey[400],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _currentTab = 1),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _currentTab == 1 ? Colors.white : Colors.transparent,
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: _currentTab == 1 
+                      ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)] 
+                      : [],
+                  border: _currentTab == 1 ? Border.all(color: _primaryOrange.withOpacity(0.3)) : null,
+                ),
+                child: Center(
+                  child: Text(
+                    'RIWAYAT',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: _currentTab == 1 ? _primaryOrange : Colors.grey[400],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // KONTEN TAB 0: MENDATANG (EMPTY STATE & ISI KERANJANG)
+  // ===========================================================================
+  Widget _buildUpcomingTab() {
+    if (_isLoadingCart) {
+      return Center(child: CircularProgressIndicator(color: _primaryOrange));
+    }
+
+    if (cartItems.isEmpty) {
+      // TAMPILAN KOSONG PERSIS SEPERTI GAMBAR
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Spacer(),
+          // Ikon Kalender Besar
+          Container(
+            padding: const EdgeInsets.all(30),
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.edit_calendar, size: 80, color: Colors.blue[300]),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Belum Ada Reservasi',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Text(
+              'Silakan pilih menu dan tentukan jadwal kedatangan Anda untuk membuat reservasi meja.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+            ),
+          ),
+          const Spacer(),
+          // Tombol Buat Reservasi Oranye
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+            child: SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _primaryOrange,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 4,
+                  shadowColor: _primaryOrange.withOpacity(0.5),
+                ),
+                // --- 2. PERBAIKAN: Arahkan ke Form Reservasi, bukan ke Menu Utama ---
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ReservationFormScreen(),
+                    ),
+                  );
+                },
+                // ---------------------------------------------------------------------
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('BUAT RESERVASI', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                    SizedBox(width: 8),
+                    Icon(Icons.arrow_forward, color: Colors.white, size: 18),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // TAMPILAN JIKA ADA ISI KERANJANG (FORM CHECKOUT DINAMIS)
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Detail Reservasi', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+          const SizedBox(height: 12),
+          _buildReservationForm(),
+          const SizedBox(height: 30),
+          
+          const Text('Menu Dipesan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+          const SizedBox(height: 12),
+          ...cartItems.asMap().entries.map((entry) => _buildCartItem(entry.key, entry.value)).toList(),
+          const SizedBox(height: 20),
+
+          _buildPaymentSummary(),
+          const SizedBox(height: 30),
+
+          SizedBox(
+            width: double.infinity,
+            height: 55,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _primaryOrange, // Sesuaikan dengan tema oranye
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 5,
+                shadowColor: _primaryOrange.withOpacity(0.5),
+              ),
+              onPressed: _isSubmitting ? null : _submitBooking,
+              child: _isSubmitting
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text(
+                      'KONFIRMASI BOOKING',
+                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // KONTEN TAB 1: RIWAYAT (DATA DINAMIS)
+  // ===========================================================================
+  Widget _buildHistoryTab() {
+    if (_isLoadingHistory) {
+      return Center(child: CircularProgressIndicator(color: _primaryOrange));
+    }
+
+    if (_historyItems.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.history_toggle_off, size: 80, color: Colors.grey[300]),
+            const SizedBox(height: 16),
+            Text('Belum ada riwayat pesanan', style: TextStyle(color: Colors.grey[500], fontSize: 16)),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      itemCount: _historyItems.length,
+      itemBuilder: (context, index) {
+        final item = _historyItems[index];
+        Color statusColor = Colors.orange;
+        String status = item['status'] ?? 'Pending';
+        
+        if (status.toLowerCase() == 'confirmed' || status.toLowerCase() == 'completed') {
+          statusColor = Colors.green;
+        } else if (status.toLowerCase() == 'cancelled') {
+          statusColor = Colors.red;
+        }
+
+        String rawDate = item['reservation_date'] ?? '';
+        String formattedDate = rawDate.isNotEmpty && rawDate.contains('T') ? rawDate.split('T')[0] : rawDate;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade100),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Tanggal: $formattedDate',
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 15),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                    child: Text(status, style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+              const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1)),
+              Row(
+                children: [
+                  Icon(Icons.access_time, size: 16, color: Colors.grey[500]),
+                  const SizedBox(width: 6),
+                  Text(item['reservation_time'] ?? '-', style: TextStyle(color: Colors.grey[700], fontSize: 13)),
+                  const SizedBox(width: 16),
+                  Icon(Icons.people_outline, size: 16, color: Colors.grey[500]),
+                  const SizedBox(width: 6),
+                  Text('${item['guest_count'] ?? '-'} Tamu', style: TextStyle(color: Colors.grey[700], fontSize: 13)),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ===========================================================================
+  // SUB-KOMPONEN FORM RESERVASI
+  // ===========================================================================
   Widget _buildReservationForm() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 5))],
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         children: [
           Row(
             children: [
-              // Pemilih Tanggal Dinamis
               Expanded(
                 child: GestureDetector(
-                  onTap: () => _pickDate(context),
-                  child: _buildBox(
-                    Icons.calendar_month, 
-                    selectedDate == null ? 'Select Date' : '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}'
-                  ),
+                  onTap: () async {
+                    final DateTime? picked = await showDatePicker(context: context, initialDate: DateTime.now(), firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 30)));
+                    if (picked != null) setState(() => selectedDate = picked);
+                  },
+                  child: _buildBox(Icons.calendar_month, selectedDate == null ? 'Pilih Tanggal' : '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}'),
                 ),
               ),
               const SizedBox(width: 12),
-              // Pemilih Waktu Dinamis
               Expanded(
                 child: GestureDetector(
-                  onTap: () => _pickTime(context),
-                  child: _buildBox(
-                    Icons.access_time, 
-                    selectedTime == null ? 'Select Time' : '${selectedTime!.hour.toString().padLeft(2,'0')}:${selectedTime!.minute.toString().padLeft(2,'0')}'
-                  ),
+                  onTap: () async {
+                    final TimeOfDay? picked = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 18, minute: 0));
+                    if (picked != null) setState(() => selectedTime = picked);
+                  },
+                  child: _buildBox(Icons.access_time, selectedTime == null ? 'Pilih Waktu' : '${selectedTime!.hour.toString().padLeft(2,'0')}:${selectedTime!.minute.toString().padLeft(2,'0')}'),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          // Dropdown Jumlah Tamu
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(color: const Color(0xFFF0F0F5), borderRadius: BorderRadius.circular(12)),
@@ -316,18 +558,14 @@ class _CartScreenState extends State<CartScreen> {
                 isExpanded: true,
                 value: selectedGuests,
                 icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[600]),
-                items: guestOptions.map((String value) {
-                  return DropdownMenuItem<String>(value: value, child: Row(
-                    children: [
-                      Icon(Icons.people_outline, size: 18, color: Colors.grey[600]),
-                      const SizedBox(width: 8),
-                      Text(value, style: const TextStyle(fontSize: 14)),
-                    ],
-                  ));
-                }).toList(),
-                onChanged: (value) {
-                  setState(() => selectedGuests = value!);
-                },
+                items: guestOptions.map((String value) => DropdownMenuItem<String>(value: value, child: Row(
+                  children: [
+                    Icon(Icons.people_outline, size: 18, color: Colors.grey[600]),
+                    const SizedBox(width: 8),
+                    Text(value, style: const TextStyle(fontSize: 14)),
+                  ],
+                ))).toList(),
+                onChanged: (value) => setState(() => selectedGuests = value!),
               ),
             ),
           ),
@@ -350,7 +588,6 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  // --- KOMPONEN ITEM KERANJANG ---
   Widget _buildCartItem(int index, Map<String, dynamic> item) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -358,14 +595,14 @@ class _CartScreenState extends State<CartScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 5))],
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Row(
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: item['image'] != null 
-              ? Image.network(item['image'], width: 70, height: 70, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.fastfood, size: 40))
+              ? Image.network(item['image'], width: 70, height: 70, fit: BoxFit.cover, errorBuilder: (c,e,s) => Container(width: 70, height: 70, color: Colors.grey[200], child: const Icon(Icons.fastfood, color: Colors.grey)))
               : Container(width: 70, height: 70, color: Colors.grey[200], child: const Icon(Icons.fastfood, color: Colors.grey)),
           ),
           const SizedBox(width: 16),
@@ -375,18 +612,15 @@ class _CartScreenState extends State<CartScreen> {
               children: [
                 Text(item['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 8),
-                Text('Rp ${item['price']}', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2C74B3))),
+                Text('Rp ${item['price']}', style: TextStyle(fontWeight: FontWeight.bold, color: _primaryOrange)),
               ],
             ),
           ),
           Row(
             children: [
-              _buildQtyBtn(Icons.remove, () => _updateQuantity(index, -1)),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text('${item['quantity']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              ),
-              _buildQtyBtn(Icons.add, () => _updateQuantity(index, 1)),
+              GestureDetector(onTap: () => _updateQuantity(index, -1), child: Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: const Color(0xFFF0F0F5), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.remove, size: 18, color: Colors.black87))),
+              Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: Text('${item['quantity']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+              GestureDetector(onTap: () => _updateQuantity(index, 1), child: Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: const Color(0xFFF0F0F5), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.add, size: 18, color: Colors.black87))),
             ],
           )
         ],
@@ -394,20 +628,8 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  Widget _buildQtyBtn(IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(color: const Color(0xFFF0F0F5), borderRadius: BorderRadius.circular(8)),
-        child: Icon(icon, size: 18, color: Colors.black87),
-      ),
-    );
-  }
-
-  // --- KOMPONEN RINGKASAN PEMBAYARAN ---
   Widget _buildPaymentSummary() {
-    double tax = subtotal * 0.11; // PPN 11%
+    double tax = subtotal * 0.11;
     double total = subtotal + tax;
 
     return Container(
@@ -415,19 +637,19 @@ class _CartScreenState extends State<CartScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 5))],
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         children: [
-          _summaryRow('Subtotal', 'Rp $subtotal'),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Subtotal', style: TextStyle(color: Colors.grey[600], fontSize: 14)), Text('Rp $subtotal', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))]),
           const SizedBox(height: 12),
-          _summaryRow('Tax & Service (11%)', 'Rp $tax'),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Tax & Service (11%)', style: TextStyle(color: Colors.grey[600], fontSize: 14)), Text('Rp $tax', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))]),
           const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider()),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Total Payment', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              Text('Rp $total', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF282A45))),
+              Text('Rp $total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: _primaryOrange)),
             ],
           ),
         ],
@@ -435,22 +657,26 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  Widget _summaryRow(String title, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(title, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-      ],
-    );
+  // ===========================================================================
+  // BOTTOM NAVIGATION
+  // ===========================================================================
+  void _onItemTapped(int index) {
+    if (index == 0) {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
+    } else if (index == 1) {
+      // Tetap di sini (Reservation)
+    } else if (index == 2) {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MenuScreen()));
+    } else if (index == 3) {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const UserScreen()));
+    }
   }
 
-  // --- KOMPONEN BOTTOM NAVIGATION BAR ---
   Widget _buildBottomNavigationBar() {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -5))],
+        boxShadow: [BoxShadow(color: Color.fromRGBO(0, 0, 0, 0.05), blurRadius: 20, offset: Offset(0, -5))],
       ),
       child: SafeArea(
         child: Padding(
@@ -458,10 +684,10 @@ class _CartScreenState extends State<CartScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(Icons.home_filled, 'Home', 0),
-              _buildNavItem(Icons.restaurant_menu, 'Menu', 1),
-              _buildNavItem(Icons.shopping_cart_outlined, 'Cart', 2),
-              _buildNavItem(Icons.person_outline, 'User', 3),
+              _buildNavItem(Icons.explore, 'Explore', 0),
+              _buildNavItem(Icons.calendar_today_outlined, 'Reservation', 1),
+              _buildNavItem(Icons.restaurant_menu, 'Menu', 2),
+              _buildNavItem(Icons.person_outline, 'Profile', 3),
             ],
           ),
         ),
@@ -476,14 +702,14 @@ class _CartScreenState extends State<CartScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: isSelected ? const Color(0xFF2C74B3) : Colors.grey[500], size: 28),
+          Icon(icon, color: isSelected ? _primaryOrange : Colors.grey[400], size: 26),
           const SizedBox(height: 4),
           Text(
             label,
             style: TextStyle(
               fontSize: 10,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected ? const Color(0xFF2C74B3) : Colors.grey[500],
+              color: isSelected ? _primaryOrange : Colors.grey[400],
             ),
           ),
         ],

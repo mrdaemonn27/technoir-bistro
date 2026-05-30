@@ -3,9 +3,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen.dart';
-import 'login_screen.dart';
-import 'cart_screen.dart'; // <-- 1. TAMBAHKAN IMPORT INI
-import 'user_screen.dart'; // <-- TAMBAHKAN IMPORT USER
+import 'cart_screen.dart'; 
+import 'user_screen.dart'; 
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -15,22 +14,27 @@ class MenuScreen extends StatefulWidget {
 }
 
 class _MenuScreenState extends State<MenuScreen> {
-  int _selectedIndex = 1; // 1 karena ini halaman Menu
+  final int _selectedIndex = 2; // Index 2 untuk halaman Menu
+  
+  // Warna Utama
+  final Color _primaryOrange = const Color(0xFFFE8C00);
+
   List menus = [];
   List filteredMenus = [];
   List<String> categories = ['All'];
   String selectedCategory = 'All';
   bool isLoading = true;
-  Set<int> favoriteMenuIds = {}; // <-- TAMBAHKAN VARIABEL STATE INI
+  
+  Set<int> favoriteMenuIds = {}; 
 
   @override
   void initState() {
     super.initState();
     fetchMenus();
-    fetchFavorites(); // <-- PANGGIL FUNGSI FAVORIT SAAT HALAMAN DIBUKA
+    fetchFavorites(); 
   }
 
-  // --- TAMBAHKAN FUNGSI UNTUK MENGAMBIL DATA FAVORIT AWAL ---
+  // --- AMBIL DATA FAVORIT ---
   Future<void> fetchFavorites() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('token');
@@ -45,14 +49,12 @@ class _MenuScreenState extends State<MenuScreen> {
           'Authorization': 'Bearer $token',
         },
       );
-
       final responseData = json.decode(response.body);
 
       if (response.statusCode == 200 && responseData['success'] == true) {
         setState(() {
           List favs = responseData['data'];
-          // Simpan ID menu yang difavoritkan ke dalam Set agar mudah dicek
-          favoriteMenuIds = favs.map<int>((f) => f['menu_id'] as int).toSet();
+          favoriteMenuIds = favs.map<int>((f) => f['id'] as int).toSet();
         });
       }
     } catch (e) {
@@ -60,15 +62,22 @@ class _MenuScreenState extends State<MenuScreen> {
     }
   }
 
-  // --- TAMBAHKAN FUNGSI UNTUK TOMBOL LOVE DITEKAN ---
+  // --- KLIK BINTANG (FAVORIT) ---
   Future<void> toggleFavorite(int menuId) async {
+    bool isAlreadyFavorite = favoriteMenuIds.contains(menuId);
+
+    // Optimistic UI Update: Langsung ubah di layar agar instan pindah ke atas!
+    setState(() {
+      if (isAlreadyFavorite) {
+        favoriteMenuIds.remove(menuId);
+      } else {
+        favoriteMenuIds.add(menuId);
+      }
+    });
+
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('token');
-
     final url = Uri.parse('http://10.0.2.2:8000/api/favorites/toggle');
-
-    // PERBAIKAN: Cek status favorit saat ini di aplikasi sebelum mengirim request
-    bool isAlreadyFavorite = favoriteMenuIds.contains(menuId);
 
     try {
       final response = await http.post(
@@ -77,40 +86,34 @@ class _MenuScreenState extends State<MenuScreen> {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: {
-          'menu_id': menuId.toString(),
-        }
+        body: {'menu_id': menuId.toString()}
       );
 
       final responseData = json.decode(response.body);
 
-      if (response.statusCode == 200 && responseData['success'] == true) {
+      if (response.statusCode != 200 || responseData['success'] != true) {
+        // Jika gagal di server, kembalikan state
         setState(() {
-          // Logika toggle yang lebih aman:
-          // Jika sebelumnya sudah favorit, berarti diklik untuk dihapus. Jika belum, berarti ditambah.
           if (isAlreadyFavorite) {
-            favoriteMenuIds.remove(menuId);
-          } else {
             favoriteMenuIds.add(menuId);
+          } else {
+            favoriteMenuIds.remove(menuId);
           }
         });
-
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(!isAlreadyFavorite ? 'Disimpan ke Favorit ❤️' : 'Dihapus dari Favorit 💔'), 
-            duration: const Duration(seconds: 1),
-          ),
-        );
       }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal mengubah favorit'), backgroundColor: Colors.red),
-      );
+      // Revert state jika error jaringan
+      setState(() {
+        if (isAlreadyFavorite) {
+          favoriteMenuIds.add(menuId);
+        } else {
+          favoriteMenuIds.remove(menuId);
+        }
+      });
     }
   }
 
+  // --- AMBIL DATA MENU ---
   Future<void> fetchMenus() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('token');
@@ -125,7 +128,6 @@ class _MenuScreenState extends State<MenuScreen> {
           'Authorization': 'Bearer $token',
         },
       );
-
       final responseData = json.decode(response.body);
 
       if (response.statusCode == 200 && responseData['success'] == true) {
@@ -133,7 +135,6 @@ class _MenuScreenState extends State<MenuScreen> {
           menus = responseData['data'];
           filteredMenus = menus;
           
-          // Ekstrak kategori unik dari data menu untuk Filter
           Set<String> uniqueCategories = {};
           for (var menu in menus) {
             if (menu['category'] != null) {
@@ -141,15 +142,11 @@ class _MenuScreenState extends State<MenuScreen> {
             }
           }
           categories.addAll(uniqueCategories);
-          
           isLoading = false;
         });
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal memuat menu dari server'), backgroundColor: Colors.red),
-      );
       setState(() => isLoading = false);
     }
   }
@@ -165,136 +162,148 @@ class _MenuScreenState extends State<MenuScreen> {
     });
   }
 
-  // --- 2. TAMBAHKAN FUNGSI INI UNTUK MEMASUKKAN MENU KE KERANJANG ---
-  Future<void> addToCart(Map<String, dynamic> menu) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? cartString = prefs.getString('cart');
-    List<dynamic> cartItems = cartString != null ? json.decode(cartString) : [];
-
-    // Cek apakah item sudah ada di keranjang
-    int existingIndex = cartItems.indexWhere((item) => item['id'] == menu['id']);
-    
-    if (existingIndex >= 0) {
-      cartItems[existingIndex]['quantity'] += 1;
-    } else {
-      cartItems.add({
-        'id': menu['id'],
-        'name': menu['name'],
-        'price': menu['price'],
-        'image': menu['image'],
-        'quantity': 1,
-      });
-    }
-
-    await prefs.setString('cart', json.encode(cartItems));
-    
-    if(!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${menu['name']} ditambahkan ke keranjang!'), duration: const Duration(seconds: 1)),
-    );
-  }
-
-  Future<void> logout() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.clear(); // Hapus semua data sesi
-
-    if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-      (route) => false,
-    );
+  void searchMenu(String query) {
+    setState(() {
+      if (selectedCategory == 'All') {
+        filteredMenus = menus.where((m) => m['name'].toString().toLowerCase().contains(query.toLowerCase())).toList();
+      } else {
+        filteredMenus = menus
+            .where((m) => m['category'] != null && m['category']['name'] == selectedCategory)
+            .where((m) => m['name'].toString().toLowerCase().contains(query.toLowerCase()))
+            .toList();
+      }
+    });
   }
 
   void _onItemTapped(int index) {
     if (index == 0) {
-      // Kembali ke Home
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
     } else if (index == 1) {
-      // Tetap di halaman ini
-    } else if (index == 2) {
-      // --- 3. TAMBAHKAN NAVIGASI KE HALAMAN KERANJANG ---
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const CartScreen()));
+    } else if (index == 2) {
+      // Tetap di MenuScreen
     } else if (index == 3) {
-      // --- TAMBAHKAN NAVIGASI KE HALAMAN USER ---
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const UserScreen()));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Memisahkan menu favorit dan menu biasa secara dinamis
+    List favoriteMenus = filteredMenus.where((m) => favoriteMenuIds.contains(m['id'])).toList();
+    List regularMenus = filteredMenus.where((m) => !favoriteMenuIds.contains(m['id'])).toList();
+
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFFAFAFA),
-        elevation: 0,
-        automaticallyImplyLeading: false, // Sembunyikan tombol back default
-        title: const Text(
-          'Our Menu',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 24),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.redAccent),
-            onPressed: logout,
-            tooltip: 'Logout',
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildOrangeHeader(),
+          _buildCategoryFilter(),
+          
+          Expanded(
+            child: isLoading
+                ? Center(child: CircularProgressIndicator(color: _primaryOrange))
+                : filteredMenus.isEmpty
+                    ? const Center(child: Text("Menu tidak ditemukan.", style: TextStyle(color: Colors.grey)))
+                    : SingleChildScrollView(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // BAGIAN FAVORIT (Otomatis naik ke sini jika bintang diklik)
+                            if (favoriteMenus.isNotEmpty) ...[
+                              const Padding(
+                                padding: EdgeInsets.only(left: 20, top: 10, bottom: 16),
+                                child: Text('Your Favourite', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF373B4D))),
+                              ),
+                              _buildMenuGrid(favoriteMenus),
+                              const SizedBox(height: 10),
+                            ],
+
+                            // BAGIAN SEMUA MENU / BUNDLE
+                            if (regularMenus.isNotEmpty) ...[
+                              Padding(
+                                padding: const EdgeInsets.only(left: 20, top: 10, bottom: 16),
+                                child: Text(selectedCategory == 'All' ? 'Bundle' : selectedCategory, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF373B4D))),
+                              ),
+                              _buildMenuGrid(regularMenus),
+                            ]
+                          ],
+                        ),
+                      ),
           ),
-          const SizedBox(width: 8),
         ],
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF282A45)))
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildSearchBar(),
-                _buildCategoryFilter(),
-                Expanded(
-                  child: _buildMenuGrid(),
-                ),
-              ],
-            ),
       bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
-  // --- KOMPONEN PENCARIAN ---
-  Widget _buildSearchBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
-      child: Container(
-        height: 50,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(25),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5)),
-          ],
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Row(
-          children: [
-            const Icon(Icons.search, color: Colors.grey),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search food...',
-                  hintStyle: TextStyle(color: Colors.grey[400]),
-                  border: InputBorder.none,
-                ),
-                onChanged: (value) {
-                  // Fitur pencarian sederhana
-                  setState(() {
-                    filteredMenus = menus
-                        .where((m) => m['name'].toString().toLowerCase().contains(value.toLowerCase()))
-                        .toList();
-                  });
-                },
+  // --- HEADER ORANYE ---
+  Widget _buildOrangeHeader() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10, left: 20, right: 20, bottom: 25),
+      decoration: BoxDecoration(
+        color: _primaryOrange,
+        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
+      ),
+      child: Column(
+        children: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              // Logo di Tengah
+              const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('T', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF5D1D20))),
+                  Icon(Icons.wine_bar, size: 28, color: Color(0xFF5D1D20)),
+                  Text('B', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF5D1D20))),
+                ],
               ),
+              // Bell di Kanan
+              Align(
+                alignment: Alignment.centerRight,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+                  child: const Icon(Icons.notifications_none, color: Colors.white, size: 22),
+                ),
+              )
+            ],
+          ),
+          const SizedBox(height: 20),
+          // Search Bar Full Width (Karena Cart Dihapus)
+          Container(
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(25),
+              border: Border.all(color: Colors.white70, width: 1.5),
             ),
-          ],
-        ),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                const Icon(Icons.search, color: Colors.white, size: 22),
+                const SizedBox(width: 8),
+                Container(width: 1, height: 20, color: Colors.white70), // Garis pemisah vertical
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      hintText: 'Search...',
+                      hintStyle: TextStyle(color: Colors.white70, fontSize: 16),
+                      border: InputBorder.none,
+                    ),
+                    onChanged: searchMenu,
+                  ),
+                ),
+              ],
+            ),
+          )
+        ],
       ),
     );
   }
@@ -302,8 +311,8 @@ class _MenuScreenState extends State<MenuScreen> {
   // --- KOMPONEN FILTER KATEGORI ---
   Widget _buildCategoryFilter() {
     return Container(
-      height: 60,
-      margin: const EdgeInsets.symmetric(vertical: 10),
+      height: 40,
+      margin: const EdgeInsets.only(top: 20, bottom: 10),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -316,20 +325,20 @@ class _MenuScreenState extends State<MenuScreen> {
             onTap: () => filterMenu(category),
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF282A45) : Colors.white,
+                color: isSelected ? const Color(0xFF373B4D) : Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  if (!isSelected) BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 5, offset: const Offset(0, 2)),
-                ],
+                border: isSelected ? null : Border.all(color: Colors.grey.shade300),
+                boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 5, offset: const Offset(0, 2))] : [],
               ),
               child: Center(
                 child: Text(
                   category,
                   style: TextStyle(
                     color: isSelected ? Colors.white : Colors.black87,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                    fontSize: 13
                   ),
                 ),
               ),
@@ -341,39 +350,39 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   // --- KOMPONEN GRID MENU ---
-  Widget _buildMenuGrid() {
-    if (filteredMenus.isEmpty) {
-      return const Center(child: Text("Menu tidak ditemukan.", style: TextStyle(color: Colors.grey)));
-    }
-
+  Widget _buildMenuGrid(List menuList) {
     return GridView.builder(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2, // 2 kolom
-        childAspectRatio: 0.75, // Rasio tinggi vs lebar kartu
+        crossAxisCount: 2, 
+        childAspectRatio: 0.9, // Diperbarui agar lebih proporsional setelah tombol "+" dihapus
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
       ),
-      itemCount: filteredMenus.length,
+      itemCount: menuList.length,
       itemBuilder: (context, index) {
-        final menu = filteredMenus[index];
+        final menu = menuList[index];
         return _buildMenuCard(menu);
       },
     );
   }
 
+  // --- KARTU MENU ---
   Widget _buildMenuCard(Map<String, dynamic> menu) {
+    bool isFav = favoriteMenuIds.contains(menu['id']);
+
+    String? imageUrl = menu['image'];
+    if (imageUrl != null && imageUrl.isNotEmpty && !imageUrl.startsWith('http')) {
+      imageUrl = 'http://10.0.2.2:8000/storage/$imageUrl';
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -382,99 +391,43 @@ class _MenuScreenState extends State<MenuScreen> {
           Expanded(
             child: ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-              child: Stack(
-                children: [
-                  Container(
-                    width: double.infinity,
-                    color: Colors.grey[200],
-                    child: menu['image'] != null
-                        ? Image.network(
-                            menu['image'],
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.fastfood, color: Colors.grey, size: 40),
-                          )
-                        : const Icon(Icons.fastfood, color: Colors.grey, size: 40),
-                  ),
-                  // Rating Badge (Opsional, pakai dummy dulu)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-                      child: Row(
-                        children: const [
-                          Icon(Icons.star, size: 12, color: Colors.amber),
-                          SizedBox(width: 4),
-                          Text('4.5', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              child: imageUrl != null && imageUrl.isNotEmpty
+                  ? Image.network(imageUrl, width: double.infinity, fit: BoxFit.cover, errorBuilder: (c,e,s) => _placeholderImg())
+                  : _placeholderImg(),
             ),
           ),
-          // Info Menu
+          
+          // Info & Tombol Bintang (TIDAK ADA TOMBOL KERANJANG LAGI)
           Padding(
             padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  menu['name'],
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(menu['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 4),
+                      Text('Rp. ${menu['price']}', style: TextStyle(fontSize: 12, color: Colors.grey[800], fontWeight: FontWeight.w600)),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  menu['category'] != null ? menu['category']['name'] : 'Kategori',
-                  style: TextStyle(color: Colors.grey[500], fontSize: 10),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Rp ${menu['price']}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                const SizedBox(width: 8),
+                // Tombol Bintang (Favorit)
+                GestureDetector(
+                  onTap: () => toggleFavorite(menu['id']),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: isFav ? _primaryOrange : Colors.white,
+                      shape: BoxShape.circle,
+                      border: isFav ? null : Border.all(color: Colors.grey.shade300),
                     ),
-                    // --- BUNGKUS TOMBOL DENGAN ROW AGAR ADA TOMBOL FAVORIT & ADD ---
-                    Row(
-                      children: [
-                        // Tombol Favorit (Love/Heart)
-                        GestureDetector(
-                          onTap: () => toggleFavorite(menu['id']),
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: favoriteMenuIds.contains(menu['id']) ? Colors.red[50] : Colors.grey[100],
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              favoriteMenuIds.contains(menu['id']) ? Icons.favorite : Icons.favorite_border,
-                              color: favoriteMenuIds.contains(menu['id']) ? Colors.red : Colors.grey[400],
-                              size: 18,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        // Tombol Add to Cart
-                        GestureDetector(
-                          onTap: () => addToCart(menu),
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF282A45),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.add, color: Colors.white, size: 18),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                    child: Icon(Icons.star, color: isFav ? Colors.white : Colors.grey[400], size: 18),
+                  ),
                 ),
               ],
             ),
@@ -484,18 +437,16 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
+  Widget _placeholderImg() {
+    return Container(width: double.infinity, color: Colors.grey[200], child: const Icon(Icons.fastfood, color: Colors.grey, size: 40));
+  }
+
   // --- KOMPONEN BOTTOM NAVIGATION BAR ---
   Widget _buildBottomNavigationBar() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -5))],
       ),
       child: SafeArea(
         child: Padding(
@@ -503,10 +454,10 @@ class _MenuScreenState extends State<MenuScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(Icons.home_filled, 'Home', 0),
-              _buildNavItem(Icons.restaurant_menu, 'Menu', 1),
-              _buildNavItem(Icons.shopping_cart_outlined, 'Cart', 2),
-              _buildNavItem(Icons.person_outline, 'User', 3),
+              _buildNavItem(Icons.explore, 'Explore', 0),
+              _buildNavItem(Icons.calendar_today_outlined, 'Reservation', 1),
+              _buildNavItem(Icons.restaurant_menu, 'Menu', 2),
+              _buildNavItem(Icons.person_outline, 'Profile', 3),
             ],
           ),
         ),
@@ -521,18 +472,14 @@ class _MenuScreenState extends State<MenuScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            color: isSelected ? const Color(0xFF2C74B3) : Colors.grey[500],
-            size: 28,
-          ),
+          Icon(icon, color: isSelected ? _primaryOrange : Colors.grey[400], size: 26),
           const SizedBox(height: 4),
           Text(
             label,
             style: TextStyle(
               fontSize: 10,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected ? const Color(0xFF2C74B3) : Colors.grey[500],
+              color: isSelected ? _primaryOrange : Colors.grey[400],
             ),
           ),
         ],
