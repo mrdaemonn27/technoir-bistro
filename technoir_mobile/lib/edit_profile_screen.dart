@@ -35,8 +35,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() {
       _usernameController.text = prefs.getString('username') ?? '';
       _emailController.text = prefs.getString('email') ?? '';
-      // Jika nanti dari backend kita simpan URL avatar di memory, bisa dipanggil di sini
-      // _currentAvatarUrl = prefs.getString('avatar') ?? _currentAvatarUrl;
+      
+      // Ambil avatar dari SharedPreferences jika sudah pernah disimpan
+      String? savedAvatar = prefs.getString('avatar');
+      if (savedAvatar != null && savedAvatar.isNotEmpty) {
+        // Jika format path relatif dari Laravel, tambahkan host URL
+        if (!savedAvatar.startsWith('http')) {
+          _currentAvatarUrl = 'http://10.0.2.2:8000/storage/$savedAvatar';
+        } else {
+          _currentAvatarUrl = savedAvatar;
+        }
+      }
     });
   }
 
@@ -109,13 +118,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (response.statusCode == 200 && data['success'] == true) {
         await prefs.setString('username', data['user']['username']);
         await prefs.setString('email', data['user']['email']);
+        
+        // --- PERBAIKAN: Simpan URL Avatar terbaru ke SharedPreferences ---
+        if (data['user']['avatar'] != null) {
+          await prefs.setString('avatar', data['user']['avatar']);
+        }
 
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profil berhasil diperbarui!'), backgroundColor: Colors.green),
         );
         
-        Navigator.pop(context);
+        // --- PERBAIKAN: Mengirim sinyal 'true' ke halaman sebelumnya ---
+        Navigator.pop(context, true);
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(

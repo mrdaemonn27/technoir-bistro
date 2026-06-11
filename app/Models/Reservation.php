@@ -9,14 +9,15 @@ class Reservation extends Model
 {
     use HasFactory;
 
-    // Izinkan kolom ini diisi
+    // Tambahkan 'total_price' di sini agar bisa diisi (Mass Assignment)
     protected $fillable = [
         'user_id',
         'table_id',
         'reservation_date',
         'guest_count',
         'status',
-        'notes'
+        'notes',
+        'total_price', // <--- TAMBAHKAN INI
     ];
 
     // Casting untuk memastikan tanggal formatnya benar saat dipanggil
@@ -35,7 +36,6 @@ class Reservation extends Model
     }
 
     // RELASI UNTUK FITUR PESAN MAKAN (FR-06)
-    // Relasi Many-to-Many ke Menu dengan tabel pivot 'menu_reservation'
     public function menus()
     {
         return $this->belongsToMany(Menu::class, 'menu_reservation')
@@ -44,7 +44,6 @@ class Reservation extends Model
     }
 
     // --- TAMBAHAN: Relasi ke Payment ---
-    // Diperlukan agar Controller tidak error saat memanggil ->with('payment')
     public function payment()
     {
         return $this->hasOne(Payment::class);

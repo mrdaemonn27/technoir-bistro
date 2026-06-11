@@ -20,6 +20,9 @@ class _UserScreenState extends State<UserScreen> {
 
   String _userName = 'Loading...';
   
+  // URL default avatar
+  String _avatarUrl = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80';
+  
   // Dummy data untuk statistik (nanti bisa diambil dari API Laravel)
   final String _reservationCount = "23";
   final String _dishOrderedCount = "39";
@@ -34,6 +37,18 @@ class _UserScreenState extends State<UserScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
       _userName = prefs.getString('username') ?? 'Guest User';
+      
+      // Ambil avatar dari SharedPreferences jika ada
+      String? savedAvatar = prefs.getString('avatar');
+      if (savedAvatar != null && savedAvatar.isNotEmpty) {
+        String baseUrl = savedAvatar.startsWith('http') 
+            ? savedAvatar 
+            : 'http://10.0.2.2:8000/storage/$savedAvatar';
+            
+        // --- BYPASS CACHE FLUTTER ---
+        // Tambahkan timestamp acak di akhir URL agar Flutter dipaksa mendownload gambar yang baru
+        _avatarUrl = '$baseUrl?v=${DateTime.now().millisecondsSinceEpoch}';
+      }
     });
   }
 
@@ -100,12 +115,11 @@ class _UserScreenState extends State<UserScreen> {
                 children: [
                   const SizedBox(height: 30),
                   
-                  // --- FOTO PROFIL ---
-                  const CircleAvatar(
+                  // --- FOTO PROFIL (Telah menggunakan _avatarUrl yang di-bypass cache nya) ---
+                  CircleAvatar(
                     radius: 50,
-                    backgroundImage: NetworkImage(
-                      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80',
-                    ),
+                    backgroundColor: Colors.grey[300],
+                    backgroundImage: NetworkImage(_avatarUrl),
                   ),
                   const SizedBox(height: 16),
                   
@@ -150,11 +164,17 @@ class _UserScreenState extends State<UserScreen> {
 
                   // --- TOMBOL EDIT PROFILE ---
                   OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
+                    onPressed: () async {
+                      // Tunggu hasil dari layar edit profile
+                      final result = await Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => const EditProfileScreen()),
-                      ).then((_) => _loadUserData());
+                      );
+                      
+                      // Jika layar edit membalikkan nilai true (tersimpan), load ulang datanya
+                      if (result == true) {
+                        _loadUserData();
+                      }
                     },
                     icon: const Icon(Icons.edit_outlined, color: Color(0xFF5A67D8), size: 20),
                     label: const Text('Edit Profile', style: TextStyle(color: Color(0xFF5A67D8), fontSize: 15)),

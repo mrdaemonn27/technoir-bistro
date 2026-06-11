@@ -11,7 +11,8 @@ class AdminReservationScreen extends StatefulWidget {
 }
 
 class _AdminReservationScreenState extends State<AdminReservationScreen> {
-  final Color _darkAdmin = const Color(0xFF1E293B); // Warna header Admin
+  final Color _primaryOrange = const Color(0xFFFE8C00);
+  final Color _darkText = const Color(0xFF373B4D); // Warna teks biru gelap (sesuai UI)
   
   List _reservations = [];
   bool _isLoading = true;
@@ -36,16 +37,14 @@ class _AdminReservationScreenState extends State<AdminReservationScreen> {
         },
       );
 
-      // Kadang struktur API membungkus data dengan ['data'] atau langsung array list
       final responseData = json.decode(response.body);
       
       if (response.statusCode == 200) {
         setState(() {
-          // Cek apakah data dibungkus dalam key 'data'
           if (responseData is Map && responseData.containsKey('data')) {
              _reservations = responseData['data'];
           } else {
-             _reservations = responseData; // Jika response langsung berupa array []
+             _reservations = responseData; 
           }
           _isLoading = false;
         });
@@ -63,7 +62,6 @@ class _AdminReservationScreenState extends State<AdminReservationScreen> {
 
   // --- FUNGSI UPDATE STATUS RESERVASI ---
   Future<void> _updateStatus(int id, String newStatus) async {
-    // Tampilkan loading dialog
     showDialog(
       context: context, 
       barrierDismissible: false, 
@@ -74,7 +72,6 @@ class _AdminReservationScreenState extends State<AdminReservationScreen> {
     String? token = prefs.getString('token');
 
     try {
-      // NOTE: Anda mungkin perlu menambahkan Rute PUT /api/reservations/{id}/status di Laravel nanti
       final response = await http.put(
         Uri.parse('http://10.0.2.2:8000/api/reservations/$id/status'),
         headers: {
@@ -110,25 +107,74 @@ class _AdminReservationScreenState extends State<AdminReservationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F9),
-      appBar: AppBar(
-        backgroundColor: _darkAdmin,
-        elevation: 0,
-        title: const Text('Reservasi Masuk', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        iconTheme: const IconThemeData(color: Colors.white),
+      backgroundColor: const Color(0xFFFAFAFA),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // --- HEADER MELENGKUNG ORANYE ---
+          _buildOrangeHeader(),
+
+          // --- TITLE ---
+          Padding(
+            padding: const EdgeInsets.only(left: 24, top: 24, bottom: 8),
+            child: Text(
+              'Reservasi masuk',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _darkText),
+            ),
+          ),
+
+          // --- LIST RESERVASI ---
+          Expanded(
+            child: _isLoading
+                ? Center(child: CircularProgressIndicator(color: _primaryOrange))
+                : _reservations.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                        itemCount: _reservations.length,
+                        itemBuilder: (context, index) {
+                          final res = _reservations[index];
+                          return _buildReservationCard(res);
+                        },
+                      ),
+          ),
+        ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _reservations.isEmpty
-              ? _buildEmptyState()
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _reservations.length,
-                  itemBuilder: (context, index) {
-                    final res = _reservations[index];
-                    return _buildReservationCard(res);
-                  },
-                ),
+    );
+  }
+
+  // --- KOMPONEN HEADER ORANYE ---
+  Widget _buildOrangeHeader() {
+    return Container(
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 15, 
+        left: 24, 
+        right: 24, 
+        bottom: 30
+      ),
+      decoration: BoxDecoration(
+        color: _primaryOrange,
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(40),
+          bottomRight: Radius.circular(40),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.black87),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -145,13 +191,22 @@ class _AdminReservationScreenState extends State<AdminReservationScreen> {
     );
   }
 
+  // --- KOMPONEN KARTU RESERVASI ---
   Widget _buildReservationCard(dynamic res) {
     String status = res['status'] ?? 'Pending';
     Color statusColor = Colors.orange;
+    String statusText = 'Pending';
     
-    if (status.toLowerCase() == 'confirmed') statusColor = Colors.green;
-    if (status.toLowerCase() == 'completed') statusColor = Colors.blue;
-    if (status.toLowerCase() == 'cancelled') statusColor = Colors.red;
+    if (status.toLowerCase() == 'confirmed') {
+      statusColor = const Color(0xFF4CAF50); // Hijau
+      statusText = 'Dikonfirmasi';
+    } else if (status.toLowerCase() == 'completed') {
+      statusColor = const Color(0xFF4CAF50); // Hijau
+      statusText = 'Selesai';
+    } else if (status.toLowerCase() == 'cancelled') {
+      statusColor = const Color(0xFFFF6B6B); // Merah
+      statusText = 'Dibatalkan';
+    }
 
     // Ambil nama user (jika berelasi)
     String customerName = 'Pelanggan';
@@ -165,136 +220,173 @@ class _AdminReservationScreenState extends State<AdminReservationScreen> {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 5))
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Card (Nama & Status)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
+          // Row 1: Info User & Status
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: Colors.grey.shade200, shape: BoxShape.circle),
+                    child: const Icon(Icons.person, color: Colors.black87, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(customerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87)),
+                      const SizedBox(height: 2),
+                      Text('Order ID: #${res['id']}', style: TextStyle(color: Colors.grey[500], fontSize: 12, fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  statusText,
+                  style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Divider(color: Colors.grey.shade200, height: 1, thickness: 1.5),
+          ),
+          
+          // Row 2: Detail Reservasi (2 Kolom)
+          Row(
+            children: [
+              // Kolom Kiri
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CircleAvatar(
-                      backgroundColor: _darkAdmin.withOpacity(0.1),
-                      child: Icon(Icons.person, color: _darkAdmin, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
                       children: [
-                        Text(customerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87)),
-                        Text('Order ID: #${res['id']}', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                        Icon(Icons.calendar_today, size: 16, color: Colors.grey[500]),
+                        const SizedBox(width: 8),
+                        Text(formattedDate, style: const TextStyle(color: Colors.black87, fontSize: 13, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Icon(Icons.people, size: 16, color: Colors.grey[500]),
+                        const SizedBox(width: 8),
+                        Text('${res['guest_count'] ?? '-'} Tamu', style: const TextStyle(color: Colors.black87, fontSize: 13, fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ],
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    status.toUpperCase(),
-                    style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Body Card (Detail Reservasi)
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Row(
+              ),
+              // Kolom Kanan
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.calendar_today, size: 16, color: Colors.grey[500]),
-                    const SizedBox(width: 8),
-                    Text(formattedDate, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w500)),
-                    const SizedBox(width: 24),
-                    Icon(Icons.access_time, size: 16, color: Colors.grey[500]),
-                    const SizedBox(width: 8),
-                    Text(res['reservation_time'] ?? '-', style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w500)),
+                    Row(
+                      children: [
+                        Icon(Icons.access_time, size: 16, color: Colors.grey[500]),
+                        const SizedBox(width: 8),
+                        Text(res['reservation_time'] ?? '-', style: const TextStyle(color: Colors.black87, fontSize: 13, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Icon(Icons.payments_outlined, size: 16, color: Colors.grey[500]),
+                        const SizedBox(width: 8),
+                        Text('Rp ${res['total_price'] ?? '0'}', style: const TextStyle(color: Colors.black87, fontSize: 13, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(Icons.people, size: 16, color: Colors.grey[500]),
-                    const SizedBox(width: 8),
-                    Text('${res['guest_count'] ?? '-'} Tamu', style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w500)),
-                    const SizedBox(width: 24),
-                    Icon(Icons.payments_outlined, size: 16, color: Colors.grey[500]),
-                    const SizedBox(width: 8),
-                    Text('Rp ${res['total_price'] ?? '0'}', style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
 
-          // Action Buttons (Berdasarkan Status)
-          if (status.toLowerCase() == 'pending' || status.toLowerCase() == 'confirmed')
+          // Notes (Jika Ada)
+          if (res['notes'] != null && res['notes'].toString().isNotEmpty) ...[
+            const SizedBox(height: 16),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: Colors.grey.shade200)),
-              ),
-              child: Row(
-                children: [
-                  if (status.toLowerCase() == 'pending') ...[
-                    Expanded(
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red, side: const BorderSide(color: Colors.red),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        onPressed: () => _updateStatus(res['id'], 'Cancelled'),
-                        child: const Text('Tolak'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        onPressed: () => _updateStatus(res['id'], 'Confirmed'),
-                        child: const Text('Konfirmasi', style: TextStyle(color: Colors.white)),
-                      ),
-                    ),
-                  ],
-                  if (status.toLowerCase() == 'confirmed') ...[
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        onPressed: () => _updateStatus(res['id'], 'Completed'),
-                        child: const Text('Tandai Selesai', style: TextStyle(color: Colors.white)),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(8)),
+              child: Text('Notes: ${res['notes']}', style: TextStyle(color: Colors.orange.shade900, fontSize: 12, fontStyle: FontStyle.italic)),
+            )
+          ],
+
+          // Row 3: Tombol Aksi (Tolak & Konfirmasi)
+          if (status.toLowerCase() == 'pending' || status.toLowerCase() == 'confirmed') ...[
+            Padding(
+              padding: const EdgeInsets.only(top: 16, bottom: 16),
+              child: Divider(color: Colors.grey.shade200, height: 1, thickness: 1.5),
             ),
+            Row(
+              children: [
+                if (status.toLowerCase() == 'pending') ...[
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFFF6B6B), 
+                        side: const BorderSide(color: Color(0xFFFF6B6B), width: 1.5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: () => _updateStatus(res['id'], 'Cancelled'),
+                      child: const Text('Tolak', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4CAF50),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        elevation: 0,
+                      ),
+                      onPressed: () => _updateStatus(res['id'], 'Confirmed'),
+                      child: const Text('Konfirmasi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+                if (status.toLowerCase() == 'confirmed') ...[
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        elevation: 0,
+                      ),
+                      onPressed: () => _updateStatus(res['id'], 'Completed'),
+                      child: const Text('Tandai Selesai', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ]
         ],
       ),
     );

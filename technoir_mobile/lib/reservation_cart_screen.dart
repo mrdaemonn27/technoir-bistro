@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'cart_screen.dart'; // Untuk kembali ke tab riwayat
 import 'reservation_success_screen.dart'; // Import halaman tiket sukses
+import 'payment_screen.dart'; // <-- TAMBAHKAN IMPORT INI UNTUK PEMBAYARAN XENDIT
 
 class ReservationCartScreen extends StatefulWidget {
   final List<Map<String, dynamic>> initialCartItems;
@@ -85,11 +86,13 @@ class _ReservationCartScreenState extends State<ReservationCartScreen> {
           'reservation_time': resTime ?? '18:00',
           'guests': resGuests != null ? '$resGuests Orang' : '2 Orang',
           'items': _cartItems,
-          // Nanti backend bisa menyimpan notes reservasi utama dan notes masing-masing menu (opsional)
           'notes': resNotes, 
           'total_price': _subtotal, 
         }),
       );
+
+      // DECODE RESPONSE BODY DI SINI
+      final data = json.decode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         // --- DATA UNTUK HALAMAN TIKET ---
@@ -113,23 +116,43 @@ class _ReservationCartScreenState extends State<ReservationCartScreen> {
 
         if (!mounted) return;
         
-        // PINDAH KE HALAMAN TIKET SUKSES (TERIMAKASIH)
-        Navigator.pushAndRemoveUntil(
-          context, 
-          MaterialPageRoute(builder: (context) => ReservationSuccessScreen(
-            name: username,
-            phone: phone,
-            dateTime: timeAndDate,
-            guests: guestsStr,
-            notes: finalNotes,
-            orderId: orderId,
-          )), 
-          (route) => false
-        );
+        // --- PERBAIKAN: LOGIKA PEMBAYARAN XENDIT ---
+        String? invoiceUrl = data['invoice_url'];
+
+        if (invoiceUrl != null && invoiceUrl.isNotEmpty) {
+          // JIKA ADA INVOICE URL, PINDAH KE HALAMAN PEMBAYARAN WEBVIEW
+          Navigator.pushAndRemoveUntil(
+            context, 
+            MaterialPageRoute(builder: (context) => PaymentScreen(
+              invoiceUrl: invoiceUrl,
+              name: username,
+              phone: phone,
+              dateTime: timeAndDate,
+              guests: guestsStr,
+              notes: finalNotes,
+              orderId: orderId,
+            )), 
+            (route) => false
+          );
+        } else {
+          // JIKA TIDAK ADA INVOICE URL (FALLBACK), LANGSUNG KE TIKET SUKSES
+          Navigator.pushAndRemoveUntil(
+            context, 
+            MaterialPageRoute(builder: (context) => ReservationSuccessScreen(
+              name: username,
+              phone: phone,
+              dateTime: timeAndDate,
+              guests: guestsStr,
+              notes: finalNotes,
+              orderId: orderId,
+            )), 
+            (route) => false
+          );
+        }
 
       } else {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal membuat reservasi'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'] ?? 'Gagal membuat reservasi'), backgroundColor: Colors.red));
       }
     } catch (e) {
       if (!mounted) return;

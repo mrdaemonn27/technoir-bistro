@@ -5,8 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Reservation;
-use App\Models\Table; // <-- IMPORT MODEL TABLE
+use App\Models\Table; 
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http; // <-- PENTING UNTUK API XENDIT
 
 class ReservationController extends Controller
 {
@@ -16,8 +17,6 @@ class ReservationController extends Controller
     public function index()
     {
         try {
-            // Ambil semua reservasi beserta data user (pelanggan)
-            // Urutkan dari yang terbaru
             $reservations = Reservation::with(['user', 'table'])
                                      ->orderBy('created_at', 'desc')
                                      ->get();
@@ -39,7 +38,6 @@ class ReservationController extends Controller
     // ========================================================
     public function updateStatus(Request $request, $id)
     {
-        // Validasi input status yang diperbolehkan
         $request->validate([
             'status' => 'required|string|in:Pending,Confirmed,Completed,Cancelled'
         ]);
@@ -54,7 +52,6 @@ class ReservationController extends Controller
                 ], 404);
             }
 
-            // Ubah status dan simpan
             $reservation->status = $request->status;
             $reservation->save();
 
@@ -73,11 +70,10 @@ class ReservationController extends Controller
     }
 
     // ========================================================
-    // 3. FUNGSI UNTUK USER: MEMBUAT RESERVASI BARU
+    // 3. FUNGSI UNTUK USER: MEMBUAT RESERVASI BARU & XENDIT INVOICE
     // ========================================================
     public function store(Request $request)
     {
-        // Validasi Data dari Flutter
         $request->validate([
             'reservation_date' => 'required|date',
             'reservation_time' => 'required',
@@ -85,30 +81,59 @@ class ReservationController extends Controller
         ]);
 
         try {
-            // Ekstrak angka dari string (Misal: "2 People" menjadi angka 2)
             $guestsCount = (int) filter_var($request->guests, FILTER_SANITIZE_NUMBER_INT);
             if ($guestsCount == 0) $guestsCount = 1;
 
-            // Cari meja pertama sebagai default
             $table = Table::first();
             $tableId = $table ? $table->id : 1; 
+            
+            $totalPrice = $request->total_price ?? 0;
 
-            // Simpan ke Database, ambil note jika ada
+            // 1. Simpan ke Database
             $reservation = Reservation::create([
                 'user_id' => $request->user()->id,
                 'table_id' => $tableId, 
                 'reservation_date' => $request->reservation_date,
                 'reservation_time' => $request->reservation_time,
                 'guest_count' => $guestsCount, 
-                'notes' => $request->notes, // Simpan notes (opsional)
+                'notes' => $request->notes, 
                 'status' => 'Pending', 
-                'total_price' => $request->total_price ?? 0, // Simpan total harga (opsional)
+                'total_price' => $totalPrice, 
             ]);
+
+            // ==========================================================
+            // 2. INTEGRASI XENDIT API (MEMBUAT INVOICE)
+            // ==========================================================
+            
+            // ---> GANTI TULISAN DI BAWAH INI DENGAN KUNCI XENDIT ANDA <---
+            $xenditSecretKey = 'xnd_development_SLPkxQk7sdUShrPbUvoOM8jWiHfuJtIF6Zsxa7tORIVopVlRUT04IaPHk5Z4Dz'; 
+            
+            // Buat ID unik untuk tagihan ini
+            $externalId = 'TECHNOIR-' . $reservation->id . '-' . time();
+
+            // Tembak API Xendit
+            $response = Http::withBasicAuth($xenditSecretKey, '')
+                ->post('https://api.xendit.co/v2/invoices', [
+                    'external_id' => $externalId,
+                    'amount' => $totalPrice,
+                    'description' => 'Pembayaran Reservasi Technoir Bistro',
+                    'customer' => [
+                        'given_names' => $request->user()->username,
+                        'email' => $request->user()->email,
+                    ],
+                    // URL dummy ini akan ditangkap di Flutter sebagai tanda sukses
+                    'success_redirect_url' => 'https://technoirbistro.com/success', 
+                    'failure_redirect_url' => 'https://technoirbistro.com/failure',
+                ]);
+
+            $xenditData = $response->json();
+            $invoiceUrl = $xenditData['invoice_url'] ?? null;
 
             return response()->json([
                 'success' => true,
-                'message' => 'Reservasi berhasil dibuat',
-                'data' => $reservation
+                'message' => 'Reservasi & Invoice berhasil dibuat',
+                'data' => $reservation,
+                'invoice_url' => $invoiceUrl // Kirim URL pembayaran ke Flutter
             ], 201);
 
         } catch (\Exception $e) {
@@ -127,7 +152,6 @@ class ReservationController extends Controller
     public function userHistory(Request $request)
     {
         try {
-            // Ambil riwayat reservasi khusus untuk user yang sedang login
             $reservations = Reservation::where('user_id', $request->user()->id)
                                      ->orderBy('created_at', 'desc')
                                      ->get();

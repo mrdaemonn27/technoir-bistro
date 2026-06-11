@@ -18,29 +18,24 @@ class PaymentController extends Controller
      */
     public function create(Request $request)
     {
-        // Pastikan ada reservation_id di URL
         if (!$request->has('reservation_id')) {
             return redirect()->route('reservations.index')->with('error', 'Reservasi tidak ditemukan.');
         }
 
         $reservation = Reservation::with(['user', 'table', 'menus'])->findOrFail($request->reservation_id);
 
-        // Pastikan relasi user ter-load
         if (!$reservation->relationLoaded('user')) {
             $reservation->load('user');
         }
 
-        // Keamanan: Pastikan yang bayar adalah pemilik reservasi
         if ($reservation->user_id !== Auth::id()) {
             abort(403, 'Unauthorized action.');
         }
 
-        // Cek jika sudah pernah bayar (mencegah double payment untuk satu reservasi)
         if ($reservation->payment) {
             return redirect()->route('reservations.index')->with('info', 'Pembayaran untuk reservasi ini sudah ada.');
         }
         
-        // Hitung total dari menu yang dipilih
         $menuTotal = 0;
         foreach ($reservation->menus as $menu) {
             $menuTotal += $menu->price * $menu->pivot->quantity;
@@ -54,56 +49,62 @@ class PaymentController extends Controller
      */
     public function store(Request $request)
     {
+        // 1. Validasi Input (Tambahkan batas maksimal)
         $request->validate([
             'reservation_id' => 'required|exists:reservations,id',
-            'amount' => 'required|numeric|min:1',
+            // Tambahkan max:50000000 (Maksimal 50 Juta) agar database tidak crash
+            'amount' => 'required|numeric|min:50000|max:50000000', 
+        ], [
+            'amount.required' => 'Jumlah pembayaran tidak boleh kosong! Silakan ketik nominal (contoh: 50000).',
+            'amount.min' => 'Minimum pembayaran adalah Rp 50.000',
+            'amount.max' => 'Maksimum pembayaran dalam satu transaksi adalah Rp 50.000.000',
         ]);
 
         $reservation = Reservation::findOrFail($request->reservation_id);
-        
-        // Load menu untuk menghitung total
         $reservation->load('menus');
 
-        // Keamanan: Pastikan yang bayar adalah pemilik reservasi
         if ($reservation->user_id !== Auth::id()) {
             abort(403, 'Unauthorized action.');
         }
 
-        // Cegah invoice ganda
         if ($reservation->payment) {
             return redirect()->route('reservations.index')->with('info', 'Pembayaran untuk reservasi ini sudah ada.');
         }
 
-        // Hitung total dari menu yang dipilih (jika ada)
+        // 2. Ambil Kunci Xendit (Dengan Fallback agar tidak diam saat error)
+        $secretKey = config('services.xendit.secret_key', env('XENDIT_SECRET_KEY'));
+        
+        // Peringatan jika belum ditaruh di .env
+        if (empty($secretKey)) {
+            return back()->with('error', 'GAGAL: Kunci Rahasia Xendit (XENDIT_SECRET_KEY) belum ditambahkan di file .env Laravel Anda!');
+        }
+
         $menuTotal = 0;
         foreach ($reservation->menus as $menu) {
             $menuTotal += $menu->price * $menu->pivot->quantity;
         }
 
-        // Gunakan total menu jika ada, jika tidak gunakan amount dari request
-        $finalAmount = $menuTotal > 0 ? $menuTotal : $request->amount;
-
+        $finalAmount = $request->amount; 
         $externalId = 'reservation-' . $reservation->id . '-' . Str::random(10);
 
         $payload = [
             'external_id' => $externalId,
             'amount' => (int) $finalAmount,
-            'payer_email' => Auth::user()->email,
+            'payer_email' => Auth::user()->email ?? 'customer@technoir.com',
             'description' => 'Pembayaran reservasi #' . $reservation->id . ($menuTotal > 0 ? ' (Termasuk menu)' : ''),
-            'success_redirect_url' => route('payments.success', ['reservation_id' => $reservation->id]),
-            'failure_redirect_url' => route('payments.failed', ['reservation_id' => $reservation->id]),
+            'success_redirect_url' => route('reservations.index'), // Arahkan ke riwayat
+            'failure_redirect_url' => route('reservations.index'),
         ];
 
-        $httpClient = Http::withBasicAuth(config('services.xendit.secret_key', env('XENDIT_SECRET_KEY')), '')
-            ->acceptJson();
+        $httpClient = Http::withBasicAuth($secretKey, '')->acceptJson();
 
-        // Disable SSL verification untuk development (Windows local)
         if (app()->environment(['local', 'testing'])) {
             $httpClient = $httpClient->withoutVerifying();
         }
 
         $response = $httpClient->post('https://api.xendit.co/v2/invoices', $payload);
 
+        // 3. Tangani Error API Xendit agar terlihat di layar
         if (!$response->successful()) {
             Log::warning('Xendit invoice create failed', [
                 'reservation_id' => $reservation->id,
@@ -111,12 +112,14 @@ class PaymentController extends Controller
                 'body' => $response->body(),
             ]);
 
-            return back()->with('error', 'Gagal membuat invoice. Silakan coba lagi atau hubungi admin.');
+            // Menampilkan alasan asli penolakan dari Xendit di UI
+            $errorMsg = $response->json('message', 'API Error');
+            return back()->with('error', 'Gagal menghubungkan ke Xendit! Alasan: ' . $errorMsg);
         }
 
         $invoice = $response->json();
 
-        // Simpan ke Database
+        // 4. Simpan Data Pembayaran ke DB
         $payment = Payment::create([
             'reservation_id' => $reservation->id,
             'amount' => $finalAmount,
@@ -130,31 +133,20 @@ class PaymentController extends Controller
             'xendit_status' => $invoice['status'] ?? 'PENDING',
         ]);
 
-        return redirect()->away($payment->invoice_url)
-                         ->with('info', 'Silakan lanjutkan pembayaran melalui Xendit.');
+        // 5. Lempar ke Halaman Xendit
+        return redirect()->away($payment->invoice_url);
     }
 
-    /**
-     * Redirect sukses setelah user menyelesaikan pembayaran di Xendit.
-     */
     public function success(Request $request)
     {
-        return redirect()->route('reservations.index')
-                         ->with('success', 'Pembayaran berhasil diproses. Kami akan memverifikasi statusnya.');
+        return redirect()->route('reservations.index')->with('success', 'Pembayaran berhasil diproses. Kami akan memverifikasi statusnya.');
     }
 
-    /**
-     * Redirect gagal/ditutup dari Xendit.
-     */
     public function failed(Request $request)
     {
-        return redirect()->route('reservations.index')
-                         ->with('error', 'Pembayaran dibatalkan atau gagal. Silakan coba lagi.');
+        return redirect()->route('reservations.index')->with('error', 'Pembayaran dibatalkan atau gagal. Silakan coba lagi.');
     }
 
-    /**
-     * Webhook listener dari Xendit (gunakan token di header x-callback-token).
-     */
     public function webhook(Request $request)
     {
         $callbackToken = $request->header('x-callback-token');

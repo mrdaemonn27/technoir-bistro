@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- INI ADALAH IZIN AGAR APLIKASI BISA MENGAKSES INTERNET (XENDIT) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:label="technoir_mobile"
         android:name="${applicationName}"

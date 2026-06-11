@@ -5,7 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen.dart';
 import 'menu_screen.dart';
 import 'user_screen.dart';
-import 'reservation_form_screen.dart'; // <-- 1. PERBAIKAN: Tambahkan import halaman form reservasi
+import 'payment_screen.dart'; 
+import 'reservation_success_screen.dart'; 
+import 'reservation_form_screen.dart'; // <-- PERBAIKAN: Import halaman Form Reservasi dikembalikan
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -129,17 +131,60 @@ class _CartScreenState extends State<CartScreen> {
       final data = json.decode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        
+        // --- PERBAIKAN: LOGIKA PEMBAYARAN XENDIT ---
+        // Siapkan data untuk halaman tiket
+        String username = prefs.getString('username') ?? 'Pelanggan';
+        String phone = '0812 3456 7890'; 
+        String formattedDate = selectedDate!.toIso8601String().split('T')[0];
+        String formattedTime = '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}';
+        String timeAndDate = '$formattedTime • $formattedDate';
+        String guestsStr = selectedGuests;
+        String finalNotes = ''; 
+        String orderId = '9877 ${DateTime.now().millisecondsSinceEpoch.toString().substring(5, 9)} ${DateTime.now().millisecondsSinceEpoch.toString().substring(9)}';
+
+        // Kosongkan keranjang
         await prefs.remove('cart');
         setState(() {
           cartItems.clear();
-          _currentTab = 1; // Pindah ke tab riwayat setelah sukses
         });
-        _fetchHistory(); // Refresh riwayat
 
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Booking Berhasil! Menunggu konfirmasi admin.'), backgroundColor: Colors.green),
-        );
+
+        String? invoiceUrl = data['invoice_url'];
+
+        // Cek jika Xendit memberikan URL
+        if (invoiceUrl != null && invoiceUrl.isNotEmpty) {
+          // Buka Halaman WebView Xendit
+          Navigator.pushAndRemoveUntil(
+            context, 
+            MaterialPageRoute(builder: (context) => PaymentScreen(
+              invoiceUrl: invoiceUrl,
+              name: username,
+              phone: phone,
+              dateTime: timeAndDate,
+              guests: guestsStr,
+              notes: finalNotes,
+              orderId: orderId,
+            )), 
+            (route) => false
+          );
+        } else {
+          // Jika tidak ada URL (Fallback), langsung ke halaman Sukses
+          Navigator.pushAndRemoveUntil(
+            context, 
+            MaterialPageRoute(builder: (context) => ReservationSuccessScreen(
+              name: username,
+              phone: phone,
+              dateTime: timeAndDate,
+              guests: guestsStr,
+              notes: finalNotes,
+              orderId: orderId,
+            )), 
+            (route) => false
+          );
+        }
+
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -152,7 +197,7 @@ class _CartScreenState extends State<CartScreen> {
         SnackBar(content: Text('Error: $e'), backgroundColor: Colors.orange),
       );
     } finally {
-      setState(() => _isSubmitting = false);
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -316,12 +361,10 @@ class _CartScreenState extends State<CartScreen> {
     }
 
     if (cartItems.isEmpty) {
-      // TAMPILAN KOSONG PERSIS SEPERTI GAMBAR
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Spacer(),
-          // Ikon Kalender Besar
           Container(
             padding: const EdgeInsets.all(30),
             decoration: BoxDecoration(
@@ -345,7 +388,7 @@ class _CartScreenState extends State<CartScreen> {
             ),
           ),
           const Spacer(),
-          // Tombol Buat Reservasi Oranye
+          // --- PERBAIKAN: Tombol Buat Reservasi Dikembalikan ---
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
             child: SizedBox(
@@ -358,7 +401,6 @@ class _CartScreenState extends State<CartScreen> {
                   elevation: 4,
                   shadowColor: _primaryOrange.withOpacity(0.5),
                 ),
-                // --- 2. PERBAIKAN: Arahkan ke Form Reservasi, bukan ke Menu Utama ---
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -367,7 +409,6 @@ class _CartScreenState extends State<CartScreen> {
                     ),
                   );
                 },
-                // ---------------------------------------------------------------------
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -383,7 +424,6 @@ class _CartScreenState extends State<CartScreen> {
       );
     }
 
-    // TAMPILAN JIKA ADA ISI KERANJANG (FORM CHECKOUT DINAMIS)
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Column(
@@ -407,7 +447,7 @@ class _CartScreenState extends State<CartScreen> {
             height: 55,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: _primaryOrange, // Sesuaikan dengan tema oranye
+                backgroundColor: _primaryOrange, 
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 elevation: 5,
                 shadowColor: _primaryOrange.withOpacity(0.5),
@@ -589,6 +629,11 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Widget _buildCartItem(int index, Map<String, dynamic> item) {
+    String? imageUrl = item['image'];
+    if (imageUrl != null && imageUrl.isNotEmpty && !imageUrl.startsWith('http')) {
+      imageUrl = 'http://10.0.2.2:8000/storage/$imageUrl';
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(12),
@@ -601,8 +646,8 @@ class _CartScreenState extends State<CartScreen> {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: item['image'] != null 
-              ? Image.network(item['image'], width: 70, height: 70, fit: BoxFit.cover, errorBuilder: (c,e,s) => Container(width: 70, height: 70, color: Colors.grey[200], child: const Icon(Icons.fastfood, color: Colors.grey)))
+            child: imageUrl != null && imageUrl.isNotEmpty
+              ? Image.network(imageUrl, width: 70, height: 70, fit: BoxFit.cover, errorBuilder: (c,e,s) => Container(width: 70, height: 70, color: Colors.grey[200], child: const Icon(Icons.fastfood, color: Colors.grey)))
               : Container(width: 70, height: 70, color: Colors.grey[200], child: const Icon(Icons.fastfood, color: Colors.grey)),
           ),
           const SizedBox(width: 16),
