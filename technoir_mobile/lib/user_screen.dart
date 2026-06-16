@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen.dart';
 import 'menu_screen.dart';
@@ -6,6 +8,8 @@ import 'cart_screen.dart';
 import 'login_screen.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
+import 'order_history_screen.dart'; // <-- Import halaman Riwayat Pesanan
+import 'saved_menus_screen.dart'; // <-- Import halaman Menu Favorit
 
 class UserScreen extends StatefulWidget {
   const UserScreen({super.key});
@@ -19,34 +23,78 @@ class _UserScreenState extends State<UserScreen> {
   final Color _primaryOrange = const Color(0xFFFE8C00);
 
   String _userName = 'Loading...';
-  
+
   // URL default avatar
-  String _avatarUrl = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80';
-  
-  // Dummy data untuk statistik (nanti bisa diambil dari API Laravel)
-  final String _reservationCount = "23";
-  final String _dishOrderedCount = "39";
+  String _avatarUrl =
+      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80';
+
+  // --- DATA DINAMIS DARI API LARAVEL ---
+  String _reservationCount = "..."; 
+  String _dishOrderedCount = "...";
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _fetchUserStats(); // Panggil fungsi ambil data statistik
+  }
+
+  // --- FUNGSI MENGAMBIL STATISTIK USER ---
+  Future<void> _fetchUserStats() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('token');
+
+    final url = Uri.parse('http://10.0.2.2:8000/api/profile/stats');
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        if (mounted) {
+          setState(() {
+            _reservationCount = data['reservation_count'].toString();
+            _dishOrderedCount = data['dish_ordered_count'].toString();
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _reservationCount = "0";
+            _dishOrderedCount = "0";
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _reservationCount = "-";
+          _dishOrderedCount = "-";
+        });
+      }
+    }
   }
 
   Future<void> _loadUserData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
       _userName = prefs.getString('username') ?? 'Guest User';
-      
+
       // Ambil avatar dari SharedPreferences jika ada
       String? savedAvatar = prefs.getString('avatar');
       if (savedAvatar != null && savedAvatar.isNotEmpty) {
-        String baseUrl = savedAvatar.startsWith('http') 
-            ? savedAvatar 
+        String baseUrl = savedAvatar.startsWith('http')
+            ? savedAvatar
             : 'http://10.0.2.2:8000/storage/$savedAvatar';
-            
+
         // --- BYPASS CACHE FLUTTER ---
-        // Tambahkan timestamp acak di akhir URL agar Flutter dipaksa mendownload gambar yang baru
         _avatarUrl = '$baseUrl?v=${DateTime.now().millisecondsSinceEpoch}';
       }
     });
@@ -56,7 +104,10 @@ class _UserScreenState extends State<UserScreen> {
     bool? confirm = await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Logout', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Logout',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: const Text('Apakah Anda yakin ingin keluar?'),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         actions: [
@@ -67,7 +118,9 @@ class _UserScreenState extends State<UserScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Keluar', style: TextStyle(color: Colors.white)),
@@ -91,11 +144,20 @@ class _UserScreenState extends State<UserScreen> {
 
   void _onItemTapped(int index) {
     if (index == 0) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
     } else if (index == 1) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const CartScreen()));
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const CartScreen()),
+      );
     } else if (index == 2) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MenuScreen()));
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MenuScreen()),
+      );
     } else if (index == 3) {
       // Tetap di sini
     }
@@ -108,21 +170,21 @@ class _UserScreenState extends State<UserScreen> {
       body: Column(
         children: [
           _buildOrangeHeader(),
-          
+
           Expanded(
             child: SingleChildScrollView(
               child: Column(
                 children: [
                   const SizedBox(height: 30),
-                  
-                  // --- FOTO PROFIL (Telah menggunakan _avatarUrl yang di-bypass cache nya) ---
+
+                  // --- FOTO PROFIL ---
                   CircleAvatar(
                     radius: 50,
                     backgroundColor: Colors.grey[300],
                     backgroundImage: NetworkImage(_avatarUrl),
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // --- NAMA ---
                   Text(
                     _userName,
@@ -140,9 +202,22 @@ class _UserScreenState extends State<UserScreen> {
                     children: [
                       Column(
                         children: [
-                          Text(_reservationCount, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                          Text(
+                            _reservationCount, // Menggunakan Data Dinamis
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
                           const SizedBox(height: 4),
-                          Text('Reservation', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                          Text(
+                            'Reservation',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 13,
+                            ),
+                          ),
                         ],
                       ),
                       Container(
@@ -153,9 +228,22 @@ class _UserScreenState extends State<UserScreen> {
                       ),
                       Column(
                         children: [
-                          Text(_dishOrderedCount, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                          Text(
+                            _dishOrderedCount, // Menggunakan Data Dinamis
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
                           const SizedBox(height: 4),
-                          Text('Dish Ordered', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                          Text(
+                            'Dish Ordered',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 13,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -165,23 +253,38 @@ class _UserScreenState extends State<UserScreen> {
                   // --- TOMBOL EDIT PROFILE ---
                   OutlinedButton.icon(
                     onPressed: () async {
-                      // Tunggu hasil dari layar edit profile
                       final result = await Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const EditProfileScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const EditProfileScreen(),
+                        ),
                       );
-                      
-                      // Jika layar edit membalikkan nilai true (tersimpan), load ulang datanya
+
                       if (result == true) {
                         _loadUserData();
                       }
                     },
-                    icon: const Icon(Icons.edit_outlined, color: Color(0xFF5A67D8), size: 20),
-                    label: const Text('Edit Profile', style: TextStyle(color: Color(0xFF5A67D8), fontSize: 15)),
+                    icon: const Icon(
+                      Icons.edit_outlined,
+                      color: Color(0xFF5A67D8),
+                      size: 20,
+                    ),
+                    label: const Text(
+                      'Edit Profile',
+                      style: TextStyle(color: Color(0xFF5A67D8), fontSize: 15),
+                    ),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFF5A67D8), width: 1.5),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                      side: const BorderSide(
+                        color: Color(0xFF5A67D8),
+                        width: 1.5,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 12,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 30),
@@ -191,25 +294,60 @@ class _UserScreenState extends State<UserScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Column(
                       children: [
+                        // Tambahan Menu: My Reservations
                         _buildActionCard(
-                          icon: Icons.help_outline, 
-                          title: 'Helps & FAQs', 
+                          icon: Icons.history,
+                          title: 'My Reservations',
                           onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Halaman Bantuan (Segera Hadir)')));
-                          }
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const OrderHistoryScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        // Tambahan Menu: Saved Menus
+                        _buildActionCard(
+                          icon: Icons.favorite_border,
+                          title: 'Saved Menus',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SavedMenusScreen(),
+                              ),
+                            );
+                          },
                         ),
                         _buildActionCard(
-                          icon: Icons.settings_outlined, 
-                          title: 'Settings', 
+                          icon: Icons.help_outline,
+                          title: 'Helps & FAQs',
                           onTap: () {
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen()));
-                          }
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Halaman Bantuan (Segera Hadir)'),
+                              ),
+                            );
+                          },
                         ),
                         _buildActionCard(
-                          icon: Icons.logout, 
-                          title: 'Log Out', 
+                          icon: Icons.settings_outlined,
+                          title: 'Settings',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SettingsScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        _buildActionCard(
+                          icon: Icons.logout,
+                          title: 'Log Out',
                           isDestructive: true,
-                          onTap: _logout
+                          onTap: _logout,
                         ),
                       ],
                     ),
@@ -218,7 +356,7 @@ class _UserScreenState extends State<UserScreen> {
                 ],
               ),
             ),
-          )
+          ),
         ],
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
@@ -229,10 +367,18 @@ class _UserScreenState extends State<UserScreen> {
   Widget _buildOrangeHeader() {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10, left: 20, right: 20, bottom: 25),
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 10,
+        left: 20,
+        right: 20,
+        bottom: 25,
+      ),
       decoration: BoxDecoration(
         color: _primaryOrange,
-        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
       ),
       child: Stack(
         alignment: Alignment.center,
@@ -241,9 +387,23 @@ class _UserScreenState extends State<UserScreen> {
           const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('T', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF5D1D20))),
+              Text(
+                'T',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF5D1D20),
+                ),
+              ),
               Icon(Icons.wine_bar, size: 28, color: Color(0xFF5D1D20)),
-              Text('B', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF5D1D20))),
+              Text(
+                'B',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF5D1D20),
+                ),
+              ),
             ],
           ),
           // Bell Icon
@@ -251,20 +411,21 @@ class _UserScreenState extends State<UserScreen> {
             alignment: Alignment.centerRight,
             child: Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.notifications_none, color: Colors.white, size: 22),
+              decoration: const BoxDecoration(shape: BoxShape.circle),
             ),
-          )
+          ),
         ],
       ),
     );
   }
 
   // --- KOMPONEN KARTU AKSI ---
-  Widget _buildActionCard({required IconData icon, required String title, required VoidCallback onTap, bool isDestructive = false}) {
+  Widget _buildActionCard({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -283,7 +444,11 @@ class _UserScreenState extends State<UserScreen> {
         ),
         child: Row(
           children: [
-            Icon(icon, color: isDestructive ? Colors.red : Colors.black87, size: 24),
+            Icon(
+              icon,
+              color: isDestructive ? Colors.red : Colors.black87,
+              size: 24,
+            ),
             const SizedBox(width: 16),
             Text(
               title,

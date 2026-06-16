@@ -6,7 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\ReservationController;
 use App\Http\Controllers\Api\FavoriteController;
-use App\Http\Controllers\Api\ReportController; // <-- TAMBAHKAN IMPORT INI
+use App\Http\Controllers\Api\ReportController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
@@ -23,8 +23,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // --- RUTE UNTUK USER PELANGGAN ---
     Route::post('/reservations', [ReservationController::class, 'store']);
     Route::get('/reservations/history', [ReservationController::class, 'userHistory']); 
+    Route::get('/notifications', [ReservationController::class, 'notifications']); 
+    
+    // Rute Profil
     Route::post('/profile/update', [AuthController::class, 'updateProfile']); 
+    Route::get('/profile/stats', [AuthController::class, 'getUserStats']); // <-- TAMBAHAN BARU UNTUK STATISTIK PROFIL
 
+    // Rute Favorit
     Route::get('/favorites', [FavoriteController::class, 'index']);
     Route::post('/favorites/toggle', [FavoriteController::class, 'toggle']);
 
@@ -37,6 +42,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reservations', [ReservationController::class, 'index']); 
     Route::put('/reservations/{id}/status', [ReservationController::class, 'updateStatus']); 
     
-    // RUTE LAPORAN KEUANGAN (BARU)
+    // RUTE LAPORAN KEUANGAN
     Route::get('/reports', [ReportController::class, 'index']); 
 });

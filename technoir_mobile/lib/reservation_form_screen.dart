@@ -187,11 +187,8 @@ class _ReservationFormScreenState extends State<ReservationFormScreen> {
               Text('B', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF5D1D20))),
             ],
           ),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
-            child: const Icon(Icons.notifications_none, color: Colors.white, size: 22),
-          )
+          // Tambahan ruang kosong agar logo "T B" tetap berada di tengah menggantikan ikon notifikasi
+          const SizedBox(width: 38), 
         ],
       ),
     );

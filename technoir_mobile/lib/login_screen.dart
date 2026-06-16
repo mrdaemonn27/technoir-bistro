@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen.dart';
 import 'register_screen.dart';
-import 'admin/admin_dashboard_screen.dart'; 
+import 'admin/admin_dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,7 +16,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  
+
   bool _isLoading = false;
   bool _isPasswordVisible = false; // Untuk fitur mata (hide/show password)
   bool _rememberMe = true; // Untuk fitur switch button
@@ -28,40 +28,48 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> prosesLogin() async {
     setState(() => _isLoading = true);
 
-    final url = Uri.parse('http://10.0.2.2:8000/api/login');
+    final url = Uri.parse('http://192.168.18.12:8000/api/login');
 
     try {
-      final response = await http.post(
-        url,
-        headers: {'Accept': 'application/json'},
-        body: {
-          'email': _emailController.text,
-          'password': _passwordController.text,
-        },
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .post(
+            url,
+            headers: {'Accept': 'application/json'},
+            body: {
+              'email': _emailController.text,
+              'password': _passwordController.text,
+            },
+          )
+          .timeout(const Duration(seconds: 15));
 
       final data = json.decode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
         SharedPreferences prefs = await SharedPreferences.getInstance();
-        
+
         await prefs.setString('token', data['token']);
-        await prefs.setString('username', data['user']['username']); 
-        
-        bool isAdmin = data['user']['is_admin'] == 1 || data['user']['is_admin'] == true;
+        await prefs.setString('username', data['user']['username']);
+
+        bool isAdmin =
+            data['user']['is_admin'] == 1 || data['user']['is_admin'] == true;
         await prefs.setBool('is_admin', isAdmin);
 
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Login Berhasil!'), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text('Login Berhasil!'),
+            backgroundColor: Colors.green,
+          ),
         );
 
         if (!mounted) return;
-        
+
         if (isAdmin) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
+            MaterialPageRoute(
+              builder: (context) => const AdminDashboardScreen(),
+            ),
           );
         } else {
           Navigator.pushReplacement(
@@ -69,17 +77,23 @@ class _LoginScreenState extends State<LoginScreen> {
             MaterialPageRoute(builder: (context) => const HomeScreen()),
           );
         }
-
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['message'] ?? 'Login Gagal'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(data['message'] ?? 'Login Gagal'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Detail Error: $e'), backgroundColor: Colors.red, duration: const Duration(seconds: 5)),
+        SnackBar(
+          content: Text('Detail Error: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
       );
     } finally {
       if (mounted) {
@@ -155,7 +169,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           Text(
                             'Remember Me',
-                            style: TextStyle(color: _darkText, fontWeight: FontWeight.w500),
+                            style: TextStyle(
+                              color: _darkText,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ],
                       ),
@@ -165,7 +182,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         },
                         child: Text(
                           'Forgot Password?',
-                          style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            color: Colors.grey[700],
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
@@ -192,18 +212,22 @@ class _LoginScreenState extends State<LoginScreen> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const RegisterScreen(),
+                      ),
                     );
                   },
                   child: const Text(
                     "Sign up",
                     style: TextStyle(
-                      color: Color(0xFF5A67D8), // Warna biru keunguan seperti di gambar
+                      color: Color(
+                        0xFF5A67D8,
+                      ), // Warna biru keunguan seperti di gambar
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
                   ),
-                )
+                ),
               ],
             ),
             const SizedBox(height: 40),
@@ -228,7 +252,10 @@ class _LoginScreenState extends State<LoginScreen> {
           ],
         ),
         borderRadius: BorderRadius.vertical(
-          bottom: Radius.elliptical(250, 60), // Membuat lengkungan melengkung lembut
+          bottom: Radius.elliptical(
+            250,
+            60,
+          ), // Membuat lengkungan melengkung lembut
         ),
       ),
       child: SafeArea(
@@ -241,30 +268,48 @@ class _LoginScreenState extends State<LoginScreen> {
               // Jika Anda sudah memasukkan gambar ke folder assets, gunakan:
               // Image.asset('assets/logo_technoir.png', height: 80),
               // -------------------------------------------------------------
-              
+
               // Placeholder Logo (Sementara)
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text(
                     'T',
-                    style: TextStyle(fontSize: 50, fontWeight: FontWeight.w900, color: Color(0xFF5D1D20)),
+                    style: TextStyle(
+                      fontSize: 50,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF5D1D20),
+                    ),
                   ),
                   Icon(Icons.wine_bar, size: 50, color: _primaryOrange),
                   const Text(
                     'B',
-                    style: TextStyle(fontSize: 50, fontWeight: FontWeight.w900, color: Color(0xFF5D1D20)),
+                    style: TextStyle(
+                      fontSize: 50,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF5D1D20),
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 4),
               const Text(
                 'TECHNOIR',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 3, color: Color(0xFF5D1D20)),
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 3,
+                  color: Color(0xFF5D1D20),
+                ),
               ),
               const Text(
                 '- B I S T R O -',
-                style: TextStyle(fontSize: 12, letterSpacing: 2, color: Color(0xFFF68B29), fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 12,
+                  letterSpacing: 2,
+                  color: Color(0xFFF68B29),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
@@ -299,7 +344,9 @@ class _LoginScreenState extends State<LoginScreen> {
           suffixIcon: isPassword
               ? IconButton(
                   icon: Icon(
-                    _isPasswordVisible ? Icons.visibility_off : Icons.visibility_off_outlined,
+                    _isPasswordVisible
+                        ? Icons.visibility_off
+                        : Icons.visibility_off_outlined,
                     color: Colors.grey.shade500,
                     size: 20,
                   ),
@@ -349,7 +396,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       ? const SizedBox(
                           height: 24,
                           width: 24,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 3,
+                          ),
                         )
                       : const Text(
                           'SIGN IN',
@@ -370,7 +420,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 1.5),
                       ),
-                      child: const Icon(Icons.arrow_forward, color: Colors.white, size: 14),
+                      child: const Icon(
+                        Icons.arrow_forward,
+                        color: Colors.white,
+                        size: 14,
+                      ),
                     ),
                   ),
               ],

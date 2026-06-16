@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Storage; // <--- TAMBAHKAN BARIS INI
+use Illuminate\Support\Facades\Storage; 
 
 class AuthController extends Controller
 {
@@ -117,6 +117,33 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Profil berhasil diperbarui',
             'user' => $user
+        ]);
+    }
+
+    // --- TAMBAHAN BARU: FUNGSI UNTUK STATISTIK USER ---
+    public function getUserStats(Request $request)
+    {
+        $user = $request->user();
+        
+        // 1. Hitung total reservasi yang pernah dibuat user ini
+        $reservationCount = \App\Models\Reservation::where('user_id', $user->id)->count();
+        
+        // 2. Hitung total porsi makanan (dish) yang dipesan user ini
+        $reservations = \App\Models\Reservation::with('menus')->where('user_id', $user->id)->get();
+        $dishOrderedCount = 0;
+        
+        foreach ($reservations as $reservation) {
+            foreach ($reservation->menus as $menu) {
+                // Menambahkan kuantitas pesanan dari tabel pivot (reservation_menu)
+                // Jika tidak ada pivot quantity, default dihitung 1
+                $dishOrderedCount += $menu->pivot->quantity ?? 1;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'reservation_count' => $reservationCount,
+            'dish_ordered_count' => $dishOrderedCount
         ]);
     }
 }

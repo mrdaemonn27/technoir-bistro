@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'dart:io'; 
+import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:image_picker/image_picker.dart'; 
+import 'package:image_picker/image_picker.dart';
 
 class AdminMenuScreen extends StatefulWidget {
   const AdminMenuScreen({super.key});
@@ -38,8 +38,11 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8000/api/menus'),
-        headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+        Uri.parse('http://192.168.18.12:8000/api/menus'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
       );
       final data = json.decode(response.body);
 
@@ -52,7 +55,9 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal memuat data menu')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Gagal memuat data menu')));
     }
   }
 
@@ -62,8 +67,11 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8000/api/categories'),
-        headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+        Uri.parse('http://192.168.18.12:8000/api/categories'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
       );
       final data = json.decode(response.body);
       if (response.statusCode == 200) {
@@ -78,23 +86,45 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
   // 2. DELETE (Hapus Data Menu)
   // ==========================================
   Future<void> _deleteMenu(int id) async {
-    bool confirm = await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        title: const Text('Hapus Menu', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
-        content: const Text('Apakah Anda yakin ingin menghapus menu ini? Tindakan ini tidak dapat dibatalkan.', style: TextStyle(color: Colors.black54)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal', style: TextStyle(color: Colors.grey))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Hapus', style: TextStyle(color: Colors.white)),
+    bool confirm =
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: Colors.white,
+            title: const Text(
+              'Hapus Menu',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            content: const Text(
+              'Apakah Anda yakin ingin menghapus menu ini? Tindakan ini tidak dapat dibatalkan.',
+              style: TextStyle(color: Colors.black54),
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text(
+                  'Batal',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text(
+                  'Hapus',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
 
     if (!confirm) return;
 
@@ -103,18 +133,33 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
 
     try {
       final response = await http.delete(
-        Uri.parse('http://10.0.2.2:8000/api/menus/$id'),
-        headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+        Uri.parse('http://192.168.18.12:8000/api/menus/$id'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
       );
 
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Menu berhasil dihapus'), backgroundColor: Colors.green));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Menu berhasil dihapus'),
+            backgroundColor: Colors.green,
+          ),
+        );
         _fetchMenus(); // Refresh data
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal menghapus menu'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gagal menghapus menu'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      );
     }
   }
 
@@ -123,11 +168,17 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
   // ==========================================
   void _showMenuForm({Map<String, dynamic>? existingMenu}) {
     final bool isEdit = existingMenu != null;
-    
-    final TextEditingController nameController = TextEditingController(text: isEdit ? existingMenu['name'] : '');
-    final TextEditingController priceController = TextEditingController(text: isEdit ? existingMenu['price'].toString() : '');
-    final TextEditingController descController = TextEditingController(text: isEdit ? existingMenu['description'] : '');
-    
+
+    final TextEditingController nameController = TextEditingController(
+      text: isEdit ? existingMenu['name'] : '',
+    );
+    final TextEditingController priceController = TextEditingController(
+      text: isEdit ? existingMenu['price'].toString() : '',
+    );
+    final TextEditingController descController = TextEditingController(
+      text: isEdit ? existingMenu['description'] : '',
+    );
+
     File? imageFile;
     final ImagePicker picker = ImagePicker();
 
@@ -139,38 +190,56 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
     }
 
     String? oldImageUrl = isEdit ? existingMenu['image'] : null;
-    if (oldImageUrl != null && oldImageUrl.isNotEmpty && !oldImageUrl.startsWith('http')) {
-      oldImageUrl = 'http://10.0.2.2:8000/storage/$oldImageUrl';
+    if (oldImageUrl != null &&
+        oldImageUrl.isNotEmpty &&
+        !oldImageUrl.startsWith('http')) {
+      oldImageUrl = 'http://192.168.18.12:8000/storage/$oldImageUrl';
     }
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white, 
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
             return Padding(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).viewInsets.bottom,
-                left: 24, right: 24, top: 24,
+                left: 24,
+                right: 24,
+                top: 24,
               ),
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(isEdit ? 'Edit Menu' : 'Tambah Menu Baru', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _darkAdmin)),
+                    Text(
+                      isEdit ? 'Edit Menu' : 'Tambah Menu Baru',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: _darkAdmin,
+                      ),
+                    ),
                     const SizedBox(height: 20),
 
                     // --- UPLOAD GAMBAR ---
                     Center(
                       child: GestureDetector(
                         onTap: () async {
-                          final XFile? pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+                          final XFile? pickedFile = await picker.pickImage(
+                            source: ImageSource.gallery,
+                            imageQuality: 80,
+                          );
                           if (pickedFile != null) {
-                            setModalState(() => imageFile = File(pickedFile.path));
+                            setModalState(
+                              () => imageFile = File(pickedFile.path),
+                            );
                           }
                         },
                         child: Container(
@@ -179,49 +248,81 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
                           decoration: BoxDecoration(
                             color: Colors.grey[100],
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              style: BorderStyle.solid,
+                            ),
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(16),
                             child: imageFile != null
-                                ? Image.file(imageFile!, fit: BoxFit.cover) 
+                                ? Image.file(imageFile!, fit: BoxFit.cover)
                                 : (oldImageUrl != null
-                                    ? Image.network(oldImageUrl, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.image, size: 50, color: Colors.grey))
-                                    : Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.add_a_photo, size: 40, color: Colors.grey[400]),
-                                          const SizedBox(height: 8),
-                                          Text('Pilih Gambar Menu', style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold)),
-                                        ],
-                                      )),
+                                      ? Image.network(
+                                          oldImageUrl,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (c, e, s) => const Icon(
+                                            Icons.image,
+                                            size: 50,
+                                            color: Colors.grey,
+                                          ),
+                                        )
+                                      : Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.add_a_photo,
+                                              size: 40,
+                                              color: Colors.grey[400],
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              'Pilih Gambar Menu',
+                                              style: TextStyle(
+                                                color: Colors.grey[600],
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        )),
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     TextField(
                       controller: nameController,
-                      style: const TextStyle(color: Colors.black87), 
+                      style: const TextStyle(color: Colors.black87),
                       decoration: InputDecoration(
-                        labelText: 'Nama Menu', 
+                        labelText: 'Nama Menu',
                         labelStyle: const TextStyle(color: Colors.grey),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     TextField(
                       controller: priceController,
                       keyboardType: TextInputType.number,
-                      style: const TextStyle(color: Colors.black87), 
+                      style: const TextStyle(color: Colors.black87),
                       decoration: InputDecoration(
-                        labelText: 'Harga (Rp)', 
+                        labelText: 'Harga (Rp)',
                         labelStyle: const TextStyle(color: Colors.grey),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -229,101 +330,186 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
                     if (categories.isNotEmpty)
                       DropdownButtonFormField<int>(
                         decoration: InputDecoration(
-                          labelText: 'Kategori', 
+                          labelText: 'Kategori',
                           labelStyle: const TextStyle(color: Colors.grey),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(12)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         dropdownColor: Colors.white,
-                        style: const TextStyle(color: Colors.black87, fontSize: 16), 
+                        style: const TextStyle(
+                          color: Colors.black87,
+                          fontSize: 16,
+                        ),
                         value: selectedCategoryId,
                         items: categories.map((cat) {
-                          return DropdownMenuItem<int>(value: cat['id'], child: Text(cat['name'], style: const TextStyle(color: Colors.black87)));
+                          return DropdownMenuItem<int>(
+                            value: cat['id'],
+                            child: Text(
+                              cat['name'],
+                              style: const TextStyle(color: Colors.black87),
+                            ),
+                          );
                         }).toList(),
-                        onChanged: (val) => setModalState(() => selectedCategoryId = val),
+                        onChanged: (val) =>
+                            setModalState(() => selectedCategoryId = val),
                       ),
                     const SizedBox(height: 16),
 
                     TextField(
                       controller: descController,
                       maxLines: 3,
-                      style: const TextStyle(color: Colors.black87), 
+                      style: const TextStyle(color: Colors.black87),
                       decoration: InputDecoration(
-                        labelText: 'Deskripsi', 
+                        labelText: 'Deskripsi',
                         labelStyle: const TextStyle(color: Colors.grey),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
-                    
+
                     SizedBox(
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: _primaryOrange, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                        onPressed: isSubmitting ? null : () async {
-                          if (nameController.text.isEmpty || priceController.text.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nama dan Harga wajib diisi!'), backgroundColor: Colors.red));
-                            return;
-                          }
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _primaryOrange,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: isSubmitting
+                            ? null
+                            : () async {
+                                if (nameController.text.isEmpty ||
+                                    priceController.text.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Nama dan Harga wajib diisi!',
+                                      ),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                }
 
-                          setModalState(() => isSubmitting = true);
-                          
-                          SharedPreferences prefs = await SharedPreferences.getInstance();
-                          String? token = prefs.getString('token');
-                          
-                          final url = isEdit 
-                              ? Uri.parse('http://10.0.2.2:8000/api/menus/${existingMenu['id']}')
-                              : Uri.parse('http://10.0.2.2:8000/api/menus');
-                              
-                          try {
-                            var request = http.MultipartRequest('POST', url);
-                            
-                            request.headers['Authorization'] = 'Bearer $token';
-                            request.headers['Accept'] = 'application/json';
+                                setModalState(() => isSubmitting = true);
 
-                            if (isEdit) {
-                              request.fields['_method'] = 'PUT';
-                            }
-                            
-                            request.fields['name'] = nameController.text;
-                            request.fields['price'] = priceController.text;
-                            request.fields['description'] = descController.text;
-                            
-                            if (selectedCategoryId != null) {
-                              request.fields['category_id'] = selectedCategoryId.toString();
-                            }
+                                SharedPreferences prefs =
+                                    await SharedPreferences.getInstance();
+                                String? token = prefs.getString('token');
 
-                            if (imageFile != null) {
-                              request.files.add(
-                                await http.MultipartFile.fromPath('image', imageFile!.path)
-                              );
-                            }
+                                final url = isEdit
+                                    ? Uri.parse(
+                                        'http://192.168.18.12:8000/api/menus/${existingMenu['id']}',
+                                      )
+                                    : Uri.parse(
+                                        'http://192.168.18.12:8000/api/menus',
+                                      );
 
-                            final streamedResponse = await request.send();
-                            final response = await http.Response.fromStream(streamedResponse);
-                            final responseData = json.decode(response.body);
+                                try {
+                                  var request = http.MultipartRequest(
+                                    'POST',
+                                    url,
+                                  );
 
-                            if (response.statusCode == 200 || response.statusCode == 201) {
-                              if (!mounted) return;
-                              Navigator.pop(context); 
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isEdit ? 'Menu diperbarui!' : 'Menu ditambahkan!'), backgroundColor: Colors.green));
-                              _fetchMenus(); 
-                            } else {
-                              if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(responseData['message'] ?? 'Gagal menyimpan menu.'), backgroundColor: Colors.red));
-                            }
-                          } catch (e) {
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
-                          } finally {
-                            setModalState(() => isSubmitting = false);
-                          }
-                        },
-                        child: isSubmitting 
-                            ? const CircularProgressIndicator(color: Colors.white)
-                            : Text(isEdit ? 'SIMPAN PERUBAHAN' : 'TAMBAHKAN MENU', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  request.headers['Authorization'] =
+                                      'Bearer $token';
+                                  request.headers['Accept'] =
+                                      'application/json';
+
+                                  if (isEdit) {
+                                    request.fields['_method'] = 'PUT';
+                                  }
+
+                                  request.fields['name'] = nameController.text;
+                                  request.fields['price'] =
+                                      priceController.text;
+                                  request.fields['description'] =
+                                      descController.text;
+
+                                  if (selectedCategoryId != null) {
+                                    request.fields['category_id'] =
+                                        selectedCategoryId.toString();
+                                  }
+
+                                  if (imageFile != null) {
+                                    request.files.add(
+                                      await http.MultipartFile.fromPath(
+                                        'image',
+                                        imageFile!.path,
+                                      ),
+                                    );
+                                  }
+
+                                  final streamedResponse = await request.send();
+                                  final response = await http
+                                      .Response.fromStream(streamedResponse);
+                                  final responseData = json.decode(
+                                    response.body,
+                                  );
+
+                                  if (response.statusCode == 200 ||
+                                      response.statusCode == 201) {
+                                    if (!mounted) return;
+                                    Navigator.pop(context);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          isEdit
+                                              ? 'Menu diperbarui!'
+                                              : 'Menu ditambahkan!',
+                                        ),
+                                        backgroundColor: Colors.green,
+                                      ),
+                                    );
+                                    _fetchMenus();
+                                  } else {
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          responseData['message'] ??
+                                              'Gagal menyimpan menu.',
+                                        ),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Error: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                } finally {
+                                  setModalState(() => isSubmitting = false);
+                                }
+                              },
+                        child: isSubmitting
+                            ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
+                            : Text(
+                                isEdit ? 'SIMPAN PERUBAHAN' : 'TAMBAHKAN MENU',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -331,7 +517,7 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
                 ),
               ),
             );
-          }
+          },
         );
       },
     );
@@ -355,30 +541,45 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
             padding: const EdgeInsets.only(left: 20, top: 24, bottom: 16),
             child: Text(
               'Kelola Menu',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _darkText),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: _darkText,
+              ),
             ),
           ),
 
           // --- GRID MENU ---
           Expanded(
-            child: isLoading 
-                ? Center(child: CircularProgressIndicator(color: _primaryOrange))
+            child: isLoading
+                ? Center(
+                    child: CircularProgressIndicator(color: _primaryOrange),
+                  )
                 : menus.isEmpty
-                    ? const Center(child: Text('Belum ada data menu.', style: TextStyle(color: Colors.grey)))
-                    : GridView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 0.72, // Proporsi agar card tinggi seperti di gambar
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                        ),
-                        itemCount: menus.length,
-                        itemBuilder: (context, index) {
-                          final menu = menus[index];
-                          return _buildMenuCard(menu);
-                        },
-                      ),
+                ? const Center(
+                    child: Text(
+                      'Belum ada data menu.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  )
+                : GridView.builder(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio:
+                          0.72, // Proporsi agar card tinggi seperti di gambar
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                    ),
+                    itemCount: menus.length,
+                    itemBuilder: (context, index) {
+                      final menu = menus[index];
+                      return _buildMenuCard(menu);
+                    },
+                  ),
           ),
         ],
       ),
@@ -395,10 +596,10 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
   Widget _buildOrangeHeader() {
     return Container(
       padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 15, 
-        left: 24, 
-        right: 24, 
-        bottom: 30
+        top: MediaQuery.of(context).padding.top + 15,
+        left: 24,
+        right: 24,
+        bottom: 30,
       ),
       decoration: BoxDecoration(
         color: _primaryOrange,
@@ -420,10 +621,14 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.black87),
+              child: const Icon(
+                Icons.arrow_back_ios_new,
+                size: 20,
+                color: Colors.black87,
+              ),
             ),
           ),
-          
+
           // Ikon Restaurant Merah
           Container(
             width: 60,
@@ -442,8 +647,10 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
   // --- KOMPONEN CARD MENU ---
   Widget _buildMenuCard(dynamic menu) {
     String? imageUrl = menu['image'];
-    if (imageUrl != null && imageUrl.isNotEmpty && !imageUrl.startsWith('http')) {
-      imageUrl = 'http://10.0.2.2:8000/storage/$imageUrl';
+    if (imageUrl != null &&
+        imageUrl.isNotEmpty &&
+        !imageUrl.startsWith('http')) {
+      imageUrl = 'http://192.168.18.12:8000/storage/$imageUrl';
     }
 
     return Container(
@@ -464,18 +671,20 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
           // Bagian Gambar
           Expanded(
             child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
               child: imageUrl != null && imageUrl.isNotEmpty
                   ? Image.network(
-                      imageUrl, 
-                      width: double.infinity, 
-                      fit: BoxFit.cover, 
-                      errorBuilder: (c,e,s) => _placeholderImg()
+                      imageUrl,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (c, e, s) => _placeholderImg(),
                     )
                   : _placeholderImg(),
             ),
           ),
-          
+
           // Bagian Teks & Tombol
           Padding(
             padding: const EdgeInsets.all(12),
@@ -483,18 +692,26 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  menu['name'], 
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87), 
-                  maxLines: 1, 
-                  overflow: TextOverflow.ellipsis
+                  menu['name'],
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Colors.black87,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Rp. ${menu['price']}', 
-                  style: TextStyle(fontSize: 12, color: Colors.grey[800], fontWeight: FontWeight.w500) // Warna teks harga hitam/grey
+                  'Rp. ${menu['price']}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[800],
+                    fontWeight: FontWeight.w500,
+                  ), // Warna teks harga hitam/grey
                 ),
                 const SizedBox(height: 12),
-                
+
                 // Row Tombol Edit dan Hapus
                 Row(
                   children: [
@@ -512,9 +729,20 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.edit, size: 14, color: Colors.grey[800]),
+                              Icon(
+                                Icons.edit,
+                                size: 14,
+                                color: Colors.grey[800],
+                              ),
                               const SizedBox(width: 4),
-                              Text('Edit', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey[800])),
+                              Text(
+                                'Edit',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey[800],
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -530,14 +758,18 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
                           color: const Color(0xFFFF6B6B), // Warna merah salmon
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.remove, color: Colors.white, size: 18),
+                        child: const Icon(
+                          Icons.remove,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                       ),
                     ),
                   ],
-                )
+                ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
@@ -545,9 +777,9 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
 
   Widget _placeholderImg() {
     return Container(
-      width: double.infinity, 
-      color: Colors.grey[200], 
-      child: const Icon(Icons.fastfood, color: Colors.grey, size: 40)
+      width: double.infinity,
+      color: Colors.grey[200],
+      child: const Icon(Icons.fastfood, color: Colors.grey, size: 40),
     );
   }
 }

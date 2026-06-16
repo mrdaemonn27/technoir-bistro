@@ -16,13 +16,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  
+
   bool _isLoading = false;
   File? _imageFile; // Variabel untuk menyimpan foto yang dipilih
   final ImagePicker _picker = ImagePicker();
-  
+
   // URL Default sementara
-  String _currentAvatarUrl = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80';
+  String _currentAvatarUrl =
+      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80';
 
   @override
   void initState() {
@@ -35,13 +36,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() {
       _usernameController.text = prefs.getString('username') ?? '';
       _emailController.text = prefs.getString('email') ?? '';
-      
+
       // Ambil avatar dari SharedPreferences jika sudah pernah disimpan
       String? savedAvatar = prefs.getString('avatar');
       if (savedAvatar != null && savedAvatar.isNotEmpty) {
         // Jika format path relatif dari Laravel, tambahkan host URL
         if (!savedAvatar.startsWith('http')) {
-          _currentAvatarUrl = 'http://10.0.2.2:8000/storage/$savedAvatar';
+          _currentAvatarUrl = 'http://192.168.18.12:8000/storage/$savedAvatar';
         } else {
           _currentAvatarUrl = savedAvatar;
         }
@@ -56,7 +57,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         source: ImageSource.gallery,
         imageQuality: 80, // Kompres sedikit agar tidak terlalu berat
       );
-      
+
       if (pickedFile != null) {
         setState(() {
           _imageFile = File(pickedFile.path);
@@ -64,7 +65,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal membuka galeri'), backgroundColor: Colors.red),
+        const SnackBar(
+          content: Text('Gagal membuka galeri'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -73,7 +77,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _updateProfile() async {
     if (_usernameController.text.isEmpty || _emailController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Username dan Email tidak boleh kosong!'), backgroundColor: Colors.red),
+        const SnackBar(
+          content: Text('Username dan Email tidak boleh kosong!'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
@@ -83,12 +90,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('token');
 
-    final url = Uri.parse('http://10.0.2.2:8000/api/profile/update');
+    final url = Uri.parse('http://192.168.18.12:8000/api/profile/update');
 
     try {
       // Gunakan MultipartRequest karena kita akan mengirim File Gambar
       var request = http.MultipartRequest('POST', url);
-      
+
       // Tambahkan Headers
       request.headers['Authorization'] = 'Bearer $token';
       request.headers['Accept'] = 'application/json';
@@ -106,19 +113,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           await http.MultipartFile.fromPath(
             'avatar', // Nama field (key) file yang akan ditangkap oleh Laravel
             _imageFile!.path,
-          )
+          ),
         );
       }
 
       // Kirim Request
-      var streamedResponse = await request.send().timeout(const Duration(seconds: 20));
+      var streamedResponse = await request.send().timeout(
+        const Duration(seconds: 20),
+      );
       var response = await http.Response.fromStream(streamedResponse);
       final data = json.decode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
         await prefs.setString('username', data['user']['username']);
         await prefs.setString('email', data['user']['email']);
-        
+
         // --- PERBAIKAN: Simpan URL Avatar terbaru ke SharedPreferences ---
         if (data['user']['avatar'] != null) {
           await prefs.setString('avatar', data['user']['avatar']);
@@ -126,15 +135,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profil berhasil diperbarui!'), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text('Profil berhasil diperbarui!'),
+            backgroundColor: Colors.green,
+          ),
         );
-        
+
         // --- PERBAIKAN: Mengirim sinyal 'true' ke halaman sebelumnya ---
         Navigator.pop(context, true);
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['message'] ?? 'Gagal memperbarui profil'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(data['message'] ?? 'Gagal memperbarui profil'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } catch (e) {
@@ -193,7 +208,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 2),
                         ),
-                        child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          color: Colors.white,
+                          size: 16,
+                        ),
                       ),
                     ),
                   ],
@@ -232,7 +251,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF282A45),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   elevation: 5,
                 ),
                 onPressed: _isLoading ? null : _updateProfile,
@@ -240,7 +261,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
                         'SAVE CHANGES',
-                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
                       ),
               ),
             ),
@@ -261,13 +287,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.bold, fontSize: 13)),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.grey[700],
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
+        ),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
           obscureText: obscureText,
           keyboardType: keyboardType,
-          style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87), 
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
           decoration: InputDecoration(
             hintText: hintText,
             hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),

@@ -3,8 +3,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen.dart';
-import 'cart_screen.dart'; 
-import 'user_screen.dart'; 
+import 'cart_screen.dart';
+import 'user_screen.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -15,7 +15,7 @@ class MenuScreen extends StatefulWidget {
 
 class _MenuScreenState extends State<MenuScreen> {
   final int _selectedIndex = 2; // Index 2 untuk halaman Menu
-  
+
   // Warna Utama
   final Color _primaryOrange = const Color(0xFFFE8C00);
 
@@ -24,14 +24,14 @@ class _MenuScreenState extends State<MenuScreen> {
   List<String> categories = ['All'];
   String selectedCategory = 'All';
   bool isLoading = true;
-  
-  Set<int> favoriteMenuIds = {}; 
+
+  Set<int> favoriteMenuIds = {};
 
   @override
   void initState() {
     super.initState();
     fetchMenus();
-    fetchFavorites(); 
+    fetchFavorites();
   }
 
   // --- AMBIL DATA FAVORIT ---
@@ -39,7 +39,7 @@ class _MenuScreenState extends State<MenuScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('token');
 
-    final url = Uri.parse('http://10.0.2.2:8000/api/favorites');
+    final url = Uri.parse('http://192.168.18.12:8000/api/favorites');
 
     try {
       final response = await http.get(
@@ -77,7 +77,7 @@ class _MenuScreenState extends State<MenuScreen> {
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('token');
-    final url = Uri.parse('http://10.0.2.2:8000/api/favorites/toggle');
+    final url = Uri.parse('http://192.168.18.12:8000/api/favorites/toggle');
 
     try {
       final response = await http.post(
@@ -86,7 +86,7 @@ class _MenuScreenState extends State<MenuScreen> {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: {'menu_id': menuId.toString()}
+        body: {'menu_id': menuId.toString()},
       );
 
       final responseData = json.decode(response.body);
@@ -118,7 +118,7 @@ class _MenuScreenState extends State<MenuScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('token');
 
-    final url = Uri.parse('http://10.0.2.2:8000/api/menus');
+    final url = Uri.parse('http://192.168.18.12:8000/api/menus');
 
     try {
       final response = await http.get(
@@ -134,7 +134,7 @@ class _MenuScreenState extends State<MenuScreen> {
         setState(() {
           menus = responseData['data'];
           filteredMenus = menus;
-          
+
           Set<String> uniqueCategories = {};
           for (var menu in menus) {
             if (menu['category'] != null) {
@@ -157,7 +157,13 @@ class _MenuScreenState extends State<MenuScreen> {
       if (category == 'All') {
         filteredMenus = menus;
       } else {
-        filteredMenus = menus.where((menu) => menu['category'] != null && menu['category']['name'] == category).toList();
+        filteredMenus = menus
+            .where(
+              (menu) =>
+                  menu['category'] != null &&
+                  menu['category']['name'] == category,
+            )
+            .toList();
       }
     });
   }
@@ -165,11 +171,25 @@ class _MenuScreenState extends State<MenuScreen> {
   void searchMenu(String query) {
     setState(() {
       if (selectedCategory == 'All') {
-        filteredMenus = menus.where((m) => m['name'].toString().toLowerCase().contains(query.toLowerCase())).toList();
+        filteredMenus = menus
+            .where(
+              (m) => m['name'].toString().toLowerCase().contains(
+                query.toLowerCase(),
+              ),
+            )
+            .toList();
       } else {
         filteredMenus = menus
-            .where((m) => m['category'] != null && m['category']['name'] == selectedCategory)
-            .where((m) => m['name'].toString().toLowerCase().contains(query.toLowerCase()))
+            .where(
+              (m) =>
+                  m['category'] != null &&
+                  m['category']['name'] == selectedCategory,
+            )
+            .where(
+              (m) => m['name'].toString().toLowerCase().contains(
+                query.toLowerCase(),
+              ),
+            )
             .toList();
       }
     });
@@ -177,21 +197,34 @@ class _MenuScreenState extends State<MenuScreen> {
 
   void _onItemTapped(int index) {
     if (index == 0) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
     } else if (index == 1) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const CartScreen()));
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const CartScreen()),
+      );
     } else if (index == 2) {
       // Tetap di MenuScreen
     } else if (index == 3) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const UserScreen()));
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const UserScreen()),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     // Memisahkan menu favorit dan menu biasa secara dinamis
-    List favoriteMenus = filteredMenus.where((m) => favoriteMenuIds.contains(m['id'])).toList();
-    List regularMenus = filteredMenus.where((m) => !favoriteMenuIds.contains(m['id'])).toList();
+    List favoriteMenus = filteredMenus
+        .where((m) => favoriteMenuIds.contains(m['id']))
+        .toList();
+    List regularMenus = filteredMenus
+        .where((m) => !favoriteMenuIds.contains(m['id']))
+        .toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
@@ -200,38 +233,69 @@ class _MenuScreenState extends State<MenuScreen> {
         children: [
           _buildOrangeHeader(),
           _buildCategoryFilter(),
-          
+
           Expanded(
             child: isLoading
-                ? Center(child: CircularProgressIndicator(color: _primaryOrange))
+                ? Center(
+                    child: CircularProgressIndicator(color: _primaryOrange),
+                  )
                 : filteredMenus.isEmpty
-                    ? const Center(child: Text("Menu tidak ditemukan.", style: TextStyle(color: Colors.grey)))
-                    : SingleChildScrollView(
-                        padding: const EdgeInsets.only(bottom: 20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // BAGIAN FAVORIT (Otomatis naik ke sini jika bintang diklik)
-                            if (favoriteMenus.isNotEmpty) ...[
-                              const Padding(
-                                padding: EdgeInsets.only(left: 20, top: 10, bottom: 16),
-                                child: Text('Your Favourite', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF373B4D))),
+                ? const Center(
+                    child: Text(
+                      "Menu tidak ditemukan.",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  )
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // BAGIAN FAVORIT (Otomatis naik ke sini jika bintang diklik)
+                        if (favoriteMenus.isNotEmpty) ...[
+                          const Padding(
+                            padding: EdgeInsets.only(
+                              left: 20,
+                              top: 10,
+                              bottom: 16,
+                            ),
+                            child: Text(
+                              'Your Favourite',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF373B4D),
                               ),
-                              _buildMenuGrid(favoriteMenus),
-                              const SizedBox(height: 10),
-                            ],
+                            ),
+                          ),
+                          _buildMenuGrid(favoriteMenus),
+                          const SizedBox(height: 10),
+                        ],
 
-                            // BAGIAN SEMUA MENU / BUNDLE
-                            if (regularMenus.isNotEmpty) ...[
-                              Padding(
-                                padding: const EdgeInsets.only(left: 20, top: 10, bottom: 16),
-                                child: Text(selectedCategory == 'All' ? 'Bundle' : selectedCategory, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF373B4D))),
+                        // BAGIAN SEMUA MENU / BUNDLE
+                        if (regularMenus.isNotEmpty) ...[
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              left: 20,
+                              top: 10,
+                              bottom: 16,
+                            ),
+                            child: Text(
+                              selectedCategory == 'All'
+                                  ? 'Bundle'
+                                  : selectedCategory,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF373B4D),
                               ),
-                              _buildMenuGrid(regularMenus),
-                            ]
-                          ],
-                        ),
-                      ),
+                            ),
+                          ),
+                          _buildMenuGrid(regularMenus),
+                        ],
+                      ],
+                    ),
+                  ),
           ),
         ],
       ),
@@ -243,10 +307,18 @@ class _MenuScreenState extends State<MenuScreen> {
   Widget _buildOrangeHeader() {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10, left: 20, right: 20, bottom: 25),
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 10,
+        left: 20,
+        right: 20,
+        bottom: 25,
+      ),
       decoration: BoxDecoration(
         color: _primaryOrange,
-        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
       ),
       child: Column(
         children: [
@@ -257,20 +329,30 @@ class _MenuScreenState extends State<MenuScreen> {
               const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('T', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF5D1D20))),
+                  Text(
+                    'T',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF5D1D20),
+                    ),
+                  ),
                   Icon(Icons.wine_bar, size: 28, color: Color(0xFF5D1D20)),
-                  Text('B', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF5D1D20))),
+                  Text(
+                    'B',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF5D1D20),
+                    ),
+                  ),
                 ],
               ),
               // Bell di Kanan
               Align(
                 alignment: Alignment.centerRight,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
-                  child: const Icon(Icons.notifications_none, color: Colors.white, size: 22),
-                ),
-              )
+                child: Container(padding: const EdgeInsets.all(8)),
+              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -287,7 +369,11 @@ class _MenuScreenState extends State<MenuScreen> {
               children: [
                 const Icon(Icons.search, color: Colors.white, size: 22),
                 const SizedBox(width: 8),
-                Container(width: 1, height: 20, color: Colors.white70), // Garis pemisah vertical
+                Container(
+                  width: 1,
+                  height: 20,
+                  color: Colors.white70,
+                ), // Garis pemisah vertical
                 const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
@@ -302,7 +388,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
@@ -320,7 +406,7 @@ class _MenuScreenState extends State<MenuScreen> {
         itemBuilder: (context, index) {
           final category = categories[index];
           final isSelected = category == selectedCategory;
-          
+
           return GestureDetector(
             onTap: () => filterMenu(category),
             child: Container(
@@ -329,8 +415,18 @@ class _MenuScreenState extends State<MenuScreen> {
               decoration: BoxDecoration(
                 color: isSelected ? const Color(0xFF373B4D) : Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                border: isSelected ? null : Border.all(color: Colors.grey.shade300),
-                boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 5, offset: const Offset(0, 2))] : [],
+                border: isSelected
+                    ? null
+                    : Border.all(color: Colors.grey.shade300),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 5,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : [],
               ),
               child: Center(
                 child: Text(
@@ -338,7 +434,7 @@ class _MenuScreenState extends State<MenuScreen> {
                   style: TextStyle(
                     color: isSelected ? Colors.white : Colors.black87,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                    fontSize: 13
+                    fontSize: 13,
                   ),
                 ),
               ),
@@ -356,8 +452,9 @@ class _MenuScreenState extends State<MenuScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2, 
-        childAspectRatio: 0.9, // Diperbarui agar lebih proporsional setelah tombol "+" dihapus
+        crossAxisCount: 2,
+        childAspectRatio:
+            0.9, // Diperbarui agar lebih proporsional setelah tombol "+" dihapus
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
       ),
@@ -374,15 +471,23 @@ class _MenuScreenState extends State<MenuScreen> {
     bool isFav = favoriteMenuIds.contains(menu['id']);
 
     String? imageUrl = menu['image'];
-    if (imageUrl != null && imageUrl.isNotEmpty && !imageUrl.startsWith('http')) {
-      imageUrl = 'http://10.0.2.2:8000/storage/$imageUrl';
+    if (imageUrl != null &&
+        imageUrl.isNotEmpty &&
+        !imageUrl.startsWith('http')) {
+      imageUrl = 'http://192.168.18.12:8000/storage/$imageUrl';
     }
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -390,13 +495,20 @@ class _MenuScreenState extends State<MenuScreen> {
           // Gambar Menu
           Expanded(
             child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
               child: imageUrl != null && imageUrl.isNotEmpty
-                  ? Image.network(imageUrl, width: double.infinity, fit: BoxFit.cover, errorBuilder: (c,e,s) => _placeholderImg())
+                  ? Image.network(
+                      imageUrl,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (c, e, s) => _placeholderImg(),
+                    )
                   : _placeholderImg(),
             ),
           ),
-          
+
           // Info & Tombol Bintang (TIDAK ADA TOMBOL KERANJANG LAGI)
           Padding(
             padding: const EdgeInsets.all(12.0),
@@ -409,9 +521,25 @@ class _MenuScreenState extends State<MenuScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(menu['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(
+                        menu['name'],
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.black87,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       const SizedBox(height: 4),
-                      Text('Rp. ${menu['price']}', style: TextStyle(fontSize: 12, color: Colors.grey[800], fontWeight: FontWeight.w600)),
+                      Text(
+                        'Rp. ${menu['price']}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[800],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -424,9 +552,15 @@ class _MenuScreenState extends State<MenuScreen> {
                     decoration: BoxDecoration(
                       color: isFav ? _primaryOrange : Colors.white,
                       shape: BoxShape.circle,
-                      border: isFav ? null : Border.all(color: Colors.grey.shade300),
+                      border: isFav
+                          ? null
+                          : Border.all(color: Colors.grey.shade300),
                     ),
-                    child: Icon(Icons.star, color: isFav ? Colors.white : Colors.grey[400], size: 18),
+                    child: Icon(
+                      Icons.star,
+                      color: isFav ? Colors.white : Colors.grey[400],
+                      size: 18,
+                    ),
                   ),
                 ),
               ],
@@ -438,7 +572,11 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   Widget _placeholderImg() {
-    return Container(width: double.infinity, color: Colors.grey[200], child: const Icon(Icons.fastfood, color: Colors.grey, size: 40));
+    return Container(
+      width: double.infinity,
+      color: Colors.grey[200],
+      child: const Icon(Icons.fastfood, color: Colors.grey, size: 40),
+    );
   }
 
   // --- KOMPONEN BOTTOM NAVIGATION BAR ---
@@ -446,7 +584,13 @@ class _MenuScreenState extends State<MenuScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -5))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
       ),
       child: SafeArea(
         child: Padding(
@@ -472,7 +616,11 @@ class _MenuScreenState extends State<MenuScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: isSelected ? _primaryOrange : Colors.grey[400], size: 26),
+          Icon(
+            icon,
+            color: isSelected ? _primaryOrange : Colors.grey[400],
+            size: 26,
+          ),
           const SizedBox(height: 4),
           Text(
             label,

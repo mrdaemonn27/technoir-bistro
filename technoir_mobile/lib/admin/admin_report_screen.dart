@@ -30,10 +30,10 @@ class _AdminReportScreenState extends State<AdminReportScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8000/api/reports'),
+        Uri.parse('http://192.168.18.12:8000/api/reports'),
         headers: {
           'Accept': 'application/json',
-          'Authorization': 'Bearer $token'
+          'Authorization': 'Bearer $token',
         },
       );
 
@@ -50,12 +50,16 @@ class _AdminReportScreenState extends State<AdminReportScreen> {
       } else {
         setState(() => _isLoading = false);
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal memuat data laporan')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal memuat data laporan')),
+        );
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -74,9 +78,14 @@ class _AdminReportScreenState extends State<AdminReportScreen> {
 
           Expanded(
             child: _isLoading
-                ? Center(child: CircularProgressIndicator(color: _primaryOrange))
+                ? Center(
+                    child: CircularProgressIndicator(color: _primaryOrange),
+                  )
                 : SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 20,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -116,7 +125,11 @@ class _AdminReportScreenState extends State<AdminReportScreen> {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(24),
                             boxShadow: [
-                              BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 10))
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.04),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
+                              ),
                             ],
                           ),
                           child: Column(
@@ -125,14 +138,33 @@ class _AdminReportScreenState extends State<AdminReportScreen> {
                               Padding(
                                 padding: const EdgeInsets.all(20),
                                 child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text('Transaksi Terbaru', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+                                    const Text(
+                                      'Transaksi Terbaru',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
                                     Row(
                                       children: [
-                                        Text('Lihat Semua', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: _primaryOrange)),
+                                        Text(
+                                          'Lihat Semua',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: _primaryOrange,
+                                          ),
+                                        ),
                                         const SizedBox(width: 4),
-                                        Icon(Icons.arrow_forward_ios, size: 12, color: _primaryOrange),
+                                        Icon(
+                                          Icons.arrow_forward_ios,
+                                          size: 12,
+                                          color: _primaryOrange,
+                                        ),
                                       ],
                                     ),
                                   ],
@@ -141,13 +173,23 @@ class _AdminReportScreenState extends State<AdminReportScreen> {
                               if (_recentTransactions.isEmpty)
                                 const Padding(
                                   padding: EdgeInsets.all(20.0),
-                                  child: Center(child: Text('Belum ada transaksi selesai.', style: TextStyle(color: Colors.grey))),
+                                  child: Center(
+                                    child: Text(
+                                      'Belum ada transaksi selesai.',
+                                      style: TextStyle(color: Colors.grey),
+                                    ),
+                                  ),
                                 )
                               else
-                                ..._recentTransactions.asMap().entries.map((entry) {
+                                ..._recentTransactions.asMap().entries.map((
+                                  entry,
+                                ) {
                                   int idx = entry.key;
                                   var trx = entry.value;
-                                  return _buildTransactionItem(trx, idx == _recentTransactions.length - 1);
+                                  return _buildTransactionItem(
+                                    trx,
+                                    idx == _recentTransactions.length - 1,
+                                  );
                                 }).toList(),
                             ],
                           ),
@@ -167,10 +209,10 @@ class _AdminReportScreenState extends State<AdminReportScreen> {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 15, 
-        left: 24, 
-        right: 24, 
-        bottom: 30
+        top: MediaQuery.of(context).padding.top + 15,
+        left: 24,
+        right: 24,
+        bottom: 30,
       ),
       decoration: BoxDecoration(
         color: _primaryOrange,
@@ -190,7 +232,11 @@ class _AdminReportScreenState extends State<AdminReportScreen> {
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.black87),
+              child: const Icon(
+                Icons.arrow_back_ios_new,
+                size: 20,
+                color: Colors.black87,
+              ),
             ),
           ),
         ],
@@ -210,7 +256,13 @@ class _AdminReportScreenState extends State<AdminReportScreen> {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: _primaryOrange.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))],
+        boxShadow: [
+          BoxShadow(
+            color: _primaryOrange.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,19 +272,35 @@ class _AdminReportScreenState extends State<AdminReportScreen> {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2), 
-                  borderRadius: BorderRadius.circular(8)
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.account_balance_wallet, color: Colors.white, size: 20),
+                child: const Icon(
+                  Icons.account_balance_wallet,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
-              const Text('Total Pendapatan', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+              const Text(
+                'Total Pendapatan',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
           Text(
             _formatCurrency(_totalRevenue),
-            style: const TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 34,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
           ),
           const SizedBox(height: 20),
           Row(
@@ -247,12 +315,26 @@ class _AdminReportScreenState extends State<AdminReportScreen> {
                   children: const [
                     Icon(Icons.arrow_outward, color: Colors.green, size: 14),
                     SizedBox(width: 4),
-                    Text('+15,5%', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
+                    Text(
+                      '+15,5%',
+                      style: TextStyle(
+                        color: Colors.green,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
               ),
               const SizedBox(width: 12),
-              Text('dari bulan lalu', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12, fontWeight: FontWeight.w500)),
+              Text(
+                'dari bulan lalu',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ],
           ),
         ],
@@ -261,13 +343,25 @@ class _AdminReportScreenState extends State<AdminReportScreen> {
   }
 
   // --- KOMPONEN KARTU KECIL ---
-  Widget _buildMiniCard({required String title, required IconData icon, required Color iconBgColor, required String percentageText, required Color percentageColor}) {
+  Widget _buildMiniCard({
+    required String title,
+    required IconData icon,
+    required Color iconBgColor,
+    required String percentageText,
+    required Color percentageColor,
+  }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 8))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -276,13 +370,23 @@ class _AdminReportScreenState extends State<AdminReportScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                  color: iconBgColor,
+                  shape: BoxShape.circle,
+                ),
                 child: Icon(icon, color: Colors.white, size: 28),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          Text(title, style: TextStyle(fontSize: 13, color: Colors.grey[600], fontWeight: FontWeight.w500)),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -296,12 +400,22 @@ class _AdminReportScreenState extends State<AdminReportScreen> {
                   children: [
                     Icon(Icons.arrow_outward, color: percentageColor, size: 12),
                     const SizedBox(width: 2),
-                    Text(percentageText, style: TextStyle(color: percentageColor, fontWeight: FontWeight.bold, fontSize: 11)),
+                    Text(
+                      percentageText,
+                      style: TextStyle(
+                        color: percentageColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              Text('dari bulan lalu', style: TextStyle(fontSize: 10, color: Colors.grey[400])),
+              Text(
+                'dari bulan lalu',
+                style: TextStyle(fontSize: 10, color: Colors.grey[400]),
+              ),
             ],
           ),
         ],
@@ -313,12 +427,18 @@ class _AdminReportScreenState extends State<AdminReportScreen> {
   Widget _buildTransactionItem(dynamic trx, bool isLast) {
     // Alternate icon for dummy visual
     bool isRestaurant = trx['id'] % 2 == 0;
-    IconData iconData = isRestaurant ? Icons.restaurant : Icons.shopping_cart_outlined;
+    IconData iconData = isRestaurant
+        ? Icons.restaurant
+        : Icons.shopping_cart_outlined;
     Color iconColor = isRestaurant ? Colors.blue : _primaryOrange;
-    Color iconBgColor = isRestaurant ? Colors.blue.withOpacity(0.1) : _primaryOrange.withOpacity(0.1);
+    Color iconBgColor = isRestaurant
+        ? Colors.blue.withOpacity(0.1)
+        : _primaryOrange.withOpacity(0.1);
 
     String date = trx['updated_at'] ?? '';
-    String formattedDate = date.isNotEmpty && date.contains('T') ? date.split('T')[0] : date;
+    String formattedDate = date.isNotEmpty && date.contains('T')
+        ? date.split('T')[0]
+        : date;
 
     return Column(
       children: [
@@ -328,7 +448,10 @@ class _AdminReportScreenState extends State<AdminReportScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: iconBgColor, borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(
+                  color: iconBgColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Icon(iconData, color: iconColor, size: 24),
               ),
               const SizedBox(width: 16),
@@ -336,9 +459,19 @@ class _AdminReportScreenState extends State<AdminReportScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Pemesanan Meja #${trx['id']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87)),
+                    Text(
+                      'Pemesanan Meja #${trx['id']}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Colors.black87,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text('$formattedDate - 20:00', style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+                    Text(
+                      '$formattedDate - 20:00',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                    ),
                   ],
                 ),
               ),
@@ -346,21 +479,46 @@ class _AdminReportScreenState extends State<AdminReportScreen> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    _formatCurrency(double.parse(trx['total_price'].toString())),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                    _formatCurrency(
+                      double.parse(trx['total_price'].toString()),
+                    ),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Colors.black87,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: Colors.green.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
-                    child: const Text('Selesai', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'Selesai',
+                      style: TextStyle(
+                        color: Colors.green,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ],
               ),
             ],
           ),
         ),
-        if (!isLast) Divider(color: Colors.grey.shade200, height: 1, indent: 20, endIndent: 20),
+        if (!isLast)
+          Divider(
+            color: Colors.grey.shade200,
+            height: 1,
+            indent: 20,
+            endIndent: 20,
+          ),
       ],
     );
   }

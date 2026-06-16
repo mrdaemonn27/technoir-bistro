@@ -15,8 +15,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController(); // Tambahan untuk UI
-  
+  final TextEditingController _confirmPasswordController =
+      TextEditingController(); // Tambahan untuk UI
+
   bool _isLoading = false;
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
@@ -53,7 +54,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _isLoading = true);
 
-    final url = Uri.parse('http://10.0.2.2:8000/api/register');
+    final url = Uri.parse('http://192.168.18.12:8000/api/register');
 
     try {
       final response = await http
@@ -72,7 +73,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (response.statusCode == 200 && data['success'] == true) {
         SharedPreferences prefs = await SharedPreferences.getInstance();
-        
+
         await prefs.setString('token', data['token']);
         await prefs.setString('username', data['user']['username']);
 
@@ -171,7 +172,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       setState(() {
                         _isPasswordVisible = !_isPasswordVisible;
                       });
-                    }
+                    },
                   ),
                   const SizedBox(height: 20),
 
@@ -186,7 +187,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       setState(() {
                         _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
                       });
-                    }
+                    },
                   ),
                   const SizedBox(height: 40),
 
@@ -219,7 +220,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       fontSize: 14,
                     ),
                   ),
-                )
+                ),
               ],
             ),
             const SizedBox(height: 40),
@@ -240,13 +241,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFFFBE4D8), 
-                Color(0xFFFFDAB9), 
-              ],
+              colors: [Color(0xFFFBE4D8), Color(0xFFFFDAB9)],
             ),
             borderRadius: BorderRadius.vertical(
-              bottom: Radius.elliptical(250, 60), 
+              bottom: Radius.elliptical(250, 60),
             ),
           ),
           child: SafeArea(
@@ -258,19 +256,49 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   // GANTI BAGIAN INI DENGAN LOGO ANDA (Sama seperti login)
                   // Image.asset('assets/logo_technoir.png', height: 80),
                   // -------------------------------------------------------------
-                  
+
                   // Placeholder Logo
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('T', style: TextStyle(fontSize: 50, fontWeight: FontWeight.w900, color: Color(0xFF5D1D20))),
+                      const Text(
+                        'T',
+                        style: TextStyle(
+                          fontSize: 50,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF5D1D20),
+                        ),
+                      ),
                       Icon(Icons.wine_bar, size: 50, color: _primaryOrange),
-                      const Text('B', style: TextStyle(fontSize: 50, fontWeight: FontWeight.w900, color: Color(0xFF5D1D20))),
+                      const Text(
+                        'B',
+                        style: TextStyle(
+                          fontSize: 50,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF5D1D20),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  const Text('TECHNOIR', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 3, color: Color(0xFF5D1D20))),
-                  const Text('- B I S T R O -', style: TextStyle(fontSize: 12, letterSpacing: 2, color: Color(0xFFF68B29), fontWeight: FontWeight.bold)),
+                  const Text(
+                    'TECHNOIR',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 3,
+                      color: Color(0xFF5D1D20),
+                    ),
+                  ),
+                  const Text(
+                    '- B I S T R O -',
+                    style: TextStyle(
+                      fontSize: 12,
+                      letterSpacing: 2,
+                      color: Color(0xFFF68B29),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -319,7 +347,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           suffixIcon: isPassword
               ? IconButton(
                   icon: Icon(
-                    isVisible ? Icons.visibility_off : Icons.visibility_off_outlined,
+                    isVisible
+                        ? Icons.visibility_off
+                        : Icons.visibility_off_outlined,
                     color: Colors.grey.shade500,
                     size: 20,
                   ),
@@ -365,7 +395,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ? const SizedBox(
                           height: 24,
                           width: 24,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 3,
+                          ),
                         )
                       : const Text(
                           'SIGN UP',
@@ -386,7 +419,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 1.5),
                       ),
-                      child: const Icon(Icons.arrow_forward, color: Colors.white, size: 14),
+                      child: const Icon(
+                        Icons.arrow_forward,
+                        color: Colors.white,
+                        size: 14,
+                      ),
                     ),
                   ),
               ],

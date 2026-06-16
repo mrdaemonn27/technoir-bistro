@@ -167,4 +167,87 @@ class ReservationController extends Controller
             ], 500);
         }
     }
+
+    // ========================================================
+    // 5. FUNGSI UNTUK USER: MENDAPATKAN NOTIFIKASI
+    // ========================================================
+    public function notifications(Request $request)
+    {
+        try {
+            $user = $request->user();
+            
+            // Ambil reservasi user beserta data pembayaran terkait
+            $reservations = Reservation::where('user_id', $user->id)
+                ->with('payment')
+                ->orderBy('updated_at', 'desc')
+                ->take(15) // Ambil 15 aktivitas terakhir agar loading cepat
+                ->get();
+
+            $notifications = [];
+
+            foreach ($reservations as $res) {
+                // 1. Cek Notifikasi Pembayaran Berhasil (Misalnya dari Xendit Webhook)
+                if ($res->payment && $res->payment->payment_status === 'verified') {
+                    $notifications[] = [
+                        'id' => 'pay_' . $res->payment->id,
+                        'title' => 'Pembayaran Berhasil 🎉',
+                        'message' => 'Pembayaran sebesar Rp ' . number_format($res->payment->amount, 0, ',', '.') . ' untuk Order #' . $res->id . ' telah diverifikasi oleh sistem Xendit.',
+                        'time' => $res->payment->updated_at->diffForHumans(),
+                        'timestamp' => $res->payment->updated_at,
+                        'icon' => 'payment'
+                    ];
+                }
+
+                // 2. Cek Notifikasi Status Reservasi Dikonfirmasi
+                if ($res->status === 'Confirmed') {
+                    $notifications[] = [
+                        'id' => 'res_conf_' . $res->id,
+                        'title' => 'Reservasi Dikonfirmasi ✅',
+                        'message' => 'Hore! Reservasi meja Anda untuk tanggal ' . \Carbon\Carbon::parse($res->reservation_date)->format('d M Y') . ' jam ' . $res->reservation_time . ' telah dikonfirmasi admin.',
+                        'time' => $res->updated_at->diffForHumans(),
+                        'timestamp' => $res->updated_at,
+                        'icon' => 'confirmed'
+                    ];
+                } 
+                // 3. Cek Notifikasi Status Reservasi Dibatalkan
+                elseif ($res->status === 'Cancelled') {
+                    $notifications[] = [
+                        'id' => 'res_canc_' . $res->id,
+                        'title' => 'Reservasi Dibatalkan ❌',
+                        'message' => 'Mohon maaf, reservasi Order #' . $res->id . ' Anda telah dibatalkan.',
+                        'time' => $res->updated_at->diffForHumans(),
+                        'timestamp' => $res->updated_at,
+                        'icon' => 'cancelled'
+                    ];
+                }
+                // 4. Cek Notifikasi Menunggu Konfirmasi (Pending)
+                elseif ($res->status === 'Pending') {
+                    $notifications[] = [
+                        'id' => 'res_pend_' . $res->id,
+                        'title' => 'Menunggu Konfirmasi ⏳',
+                        'message' => 'Pesanan #' . $res->id . ' telah diterima. Jika Anda sudah membayar via Xendit, mohon tunggu admin mengonfirmasi pesanan Anda.',
+                        'time' => $res->created_at->diffForHumans(),
+                        'timestamp' => $res->created_at,
+                        'icon' => 'pending'
+                    ];
+                }
+            }
+
+            // Urutkan array notifikasi berdasarkan waktu terbaru
+            usort($notifications, function ($a, $b) {
+                return $b['timestamp'] <=> $a['timestamp'];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $notifications
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memuat notifikasi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

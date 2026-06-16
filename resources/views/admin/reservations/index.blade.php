@@ -52,7 +52,8 @@
                                             <span class="font-bold text-indigo-500">{{ \Carbon\Carbon::parse($reservation->reservation_date)->format('H:i') }}</span>
                                         </td>
                                         <td class="py-4 px-6">
-                                            <div>{{ $reservation->table->name ?? 'Meja Dihapus' }} <span class="text-xs">({{ $reservation->table->location ?? '-' }})</span></div>
+                                            {{-- PERBAIKAN: Deteksi otomatis kolom nama meja --}}
+                                            <div>{{ $reservation->table->no_meja ?? $reservation->table->table_number ?? $reservation->table->nomor_meja ?? $reservation->table->name ?? 'Meja Dihapus' }} <span class="text-xs">({{ $reservation->table->location ?? '-' }})</span></div>
                                             <div class="text-xs text-gray-500">{{ $reservation->guest_count }} Orang</div>
 
                                             @if($reservation->menus->count() > 0)
