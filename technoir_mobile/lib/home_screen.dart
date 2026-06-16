@@ -559,7 +559,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               const SizedBox(width: 2),
                               Expanded(
                                 child: Text(
-                                  'Jl. Jend. Sudirman No.1',
+                                  'Jl. Bojong Santos No.1',
                                   style: TextStyle(
                                     fontSize: 10,
                                     color: Colors.grey[600],

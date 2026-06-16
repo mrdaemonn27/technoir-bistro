@@ -1,101 +1,135 @@
 <x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-            {{ __('Laporan Keuangan') }}
-        </h2>
-    </x-slot>
+    <style>
+        .admin-reveal {
+            opacity: 0;
+            transform: translateY(14px);
+            transition: opacity 520ms ease, transform 520ms ease;
+        }
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            
-            <!-- Statistik Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <!-- Card Harian -->
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6 border-l-4 border-blue-500">
-                    <div class="text-gray-500 dark:text-gray-400 text-sm uppercase font-bold tracking-wider">Pendapatan Hari Ini</div>
-                    <div class="text-3xl font-bold text-gray-900 dark:text-gray-100 mt-2">
-                        Rp {{ number_format($dailyRevenue, 0, ',', '.') }}
-                    </div>
+        .admin-reveal.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .soft-card,
+        .soft-row {
+            transition: transform 200ms ease, background-color 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+        }
+
+        .soft-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(234, 142, 22, .36);
+            box-shadow: 0 16px 38px rgba(117, 74, 25, .08);
+        }
+
+        .soft-row:hover {
+            background-color: #fffaf2;
+        }
+    </style>
+
+    <div class="min-h-screen bg-[#fbf7f1] text-[#1f1712]">
+        <main class="mx-auto max-w-7xl px-6 py-10 lg:px-8">
+            <section class="admin-reveal rounded-[28px] border border-[#f0dfca] bg-white p-6 shadow-sm">
+                <p class="text-xs font-black uppercase tracking-[0.2em] text-[#b76b0c]">Admin Laporan</p>
+                <h1 class="mt-2 text-3xl font-black tracking-tight md:text-4xl">Laporan Keuangan</h1>
+                <p class="mt-3 max-w-2xl text-sm leading-7 text-[#6b5b4c]">
+                    Ringkasan pendapatan dan riwayat transaksi terbaru restoran.
+                </p>
+            </section>
+
+            <section class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+                @foreach([
+                    ['label' => 'Pendapatan Hari Ini', 'value' => $dailyRevenue, 'meta' => 'Transaksi hari berjalan'],
+                    ['label' => 'Pendapatan Bulan Ini', 'value' => $monthlyRevenue, 'meta' => 'Akumulasi bulan aktif'],
+                    ['label' => 'Total Pendapatan', 'value' => $totalRevenue, 'meta' => 'Seluruh transaksi tercatat'],
+                ] as $item)
+                    <article class="admin-reveal soft-card rounded-3xl border border-[#f0dfca] bg-white p-6">
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <p class="text-xs font-black uppercase tracking-[0.16em] text-[#a89583]">{{ $item['label'] }}</p>
+                                <p class="mt-4 text-3xl font-black tracking-tight text-[#1f1712]">
+                                    Rp {{ number_format($item['value'], 0, ',', '.') }}
+                                </p>
+                                <p class="mt-2 text-sm text-[#6b5b4c]">{{ $item['meta'] }}</p>
+                            </div>
+                            <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff3df] text-[#c8740f]">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-2.21 0-4 1.343-4 3s1.79 3 4 3 4-1.343 4-3-1.79-3-4-3z M3 11c2.4-4 5.4-6 9-6s6.6 2 9 6c-2.4 4-5.4 6-9 6s-6.6-2-9-6z" />
+                                </svg>
+                            </div>
+                        </div>
+                    </article>
+                @endforeach
+            </section>
+
+            <section class="admin-reveal mt-6 overflow-hidden rounded-[28px] border border-[#f0dfca] bg-white shadow-sm">
+                <div class="border-b border-[#f3e5d3] px-6 py-5">
+                    <h2 class="text-lg font-black">Riwayat Transaksi Terbaru</h2>
+                    <p class="mt-1 text-sm text-[#6b5b4c]">Data pembayaran terbaru yang tercatat di sistem.</p>
                 </div>
 
-                <!-- Card Bulanan -->
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6 border-l-4 border-green-500">
-                    <div class="text-gray-500 dark:text-gray-400 text-sm uppercase font-bold tracking-wider">Pendapatan Bulan Ini</div>
-                    <div class="text-3xl font-bold text-gray-900 dark:text-gray-100 mt-2">
-                        Rp {{ number_format($monthlyRevenue, 0, ',', '.') }}
-                    </div>
-                </div>
-
-                <!-- Card Total -->
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6 border-l-4 border-purple-500">
-                    <div class="text-gray-500 dark:text-gray-400 text-sm uppercase font-bold tracking-wider">Total Pendapatan</div>
-                    <div class="text-3xl font-bold text-gray-900 dark:text-gray-100 mt-2">
-                        Rp {{ number_format($totalRevenue, 0, ',', '.') }}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tabel Riwayat Transaksi -->
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900 dark:text-gray-100">
-                    <h3 class="text-lg font-bold mb-4">Riwayat Transaksi Terbaru</h3>
-
-                    <div class="overflow-x-auto relative shadow-md sm:rounded-lg">
-                        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                                <tr>
-                                    <th scope="col" class="py-3 px-6">ID Transaksi</th>
-                                    <th scope="col" class="py-3 px-6">Tanggal</th>
-                                    <th scope="col" class="py-3 px-6">Pelanggan</th>
-                                    <th scope="col" class="py-3 px-6">Metode</th>
-                                    <th scope="col" class="py-3 px-6 text-right">Jumlah (Rp)</th>
-                                    <th scope="col" class="py-3 px-6 text-center">Status</th>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-[#fff8ed] text-xs font-black uppercase tracking-[0.14em] text-[#9b8067]">
+                            <tr>
+                                <th class="px-6 py-4">ID Transaksi</th>
+                                <th class="px-6 py-4">Tanggal</th>
+                                <th class="px-6 py-4">Pelanggan</th>
+                                <th class="px-6 py-4">Metode</th>
+                                <th class="px-6 py-4 text-right">Jumlah</th>
+                                <th class="px-6 py-4 text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-[#f3e5d3]">
+                            @forelse ($recentPayments as $payment)
+                                <tr class="soft-row">
+                                    <td class="px-6 py-5 font-black text-[#1f1712]">#{{ $payment->id }}</td>
+                                    <td class="px-6 py-5 text-[#6b5b4c]">
+                                        {{ \Carbon\Carbon::parse($payment->created_at)->format('d M Y H:i') }}
+                                    </td>
+                                    <td class="px-6 py-5">
+                                        <p class="font-semibold text-[#1f1712]">
+                                            {{ $payment->reservation->user->username ?? $payment->reservation->user->name ?? 'Guest' }}
+                                        </p>
+                                    </td>
+                                    <td class="px-6 py-5">
+                                        <span class="rounded-full bg-[#fff3df] px-3 py-1 text-xs font-black uppercase tracking-[0.1em] text-[#b76b0c]">
+                                            {{ ucfirst($payment->payment_method ?? 'Cash') }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-5 text-right font-black text-[#1f1712]">
+                                        Rp {{ number_format($payment->amount, 0, ',', '.') }}
+                                    </td>
+                                    <td class="px-6 py-5 text-center">
+                                        <span class="rounded-full bg-green-50 px-3 py-1 text-xs font-black uppercase tracking-[0.1em] text-green-700">
+                                            Success
+                                        </span>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                @forelse ($recentPayments as $payment)
-                                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                                        <td class="py-4 px-6 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                                            #{{ $payment->id }}
-                                        </td>
-                                        <td class="py-4 px-6">
-                                            {{ \Carbon\Carbon::parse($payment->created_at)->format('d M Y H:i') }}
-                                        </td>
-                                        <td class="py-4 px-6">
-                                            {{ $payment->reservation->user->name ?? 'Guest' }}
-                                        </td>
-                                        <td class="py-4 px-6">
-                                            <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-300">
-                                                {{ ucfirst($payment->payment_method ?? 'Cash') }}
-                                            </span>
-                                        </td>
-                                        <td class="py-4 px-6 text-right font-bold text-gray-900 dark:text-white">
-                                            Rp {{ number_format($payment->amount, 0, ',', '.') }}
-                                        </td>
-                                        <td class="py-4 px-6 text-center">
-                                            <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300">
-                                                Success
-                                            </span>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="6" class="py-4 px-6 text-center text-gray-500 dark:text-gray-400">
-                                            Belum ada data transaksi.
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Pagination -->
-                    <div class="mt-4">
-                        {{ $recentPayments->links() }}
-                    </div>
-
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="px-6 py-12 text-center text-sm text-[#6b5b4c]">
+                                        Belum ada data transaksi.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
-            </div>
-        </div>
+
+                <div class="border-t border-[#f3e5d3] px-6 py-5">
+                    {{ $recentPayments->links() }}
+                </div>
+            </section>
+        </main>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.admin-reveal').forEach((item, index) => {
+                item.style.transitionDelay = `${Math.min(index * 55, 280)}ms`;
+                requestAnimationFrame(() => item.classList.add('is-visible'));
+            });
+        });
+    </script>
 </x-app-layout>
